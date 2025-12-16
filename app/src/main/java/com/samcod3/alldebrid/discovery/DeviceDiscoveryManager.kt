@@ -370,11 +370,26 @@ class DeviceDiscoveryManager @Inject constructor(
                     return@withContext kodiDevice
                 }
                 
-                // Not Kodi, try to get DLNA device description
-                val descriptionUrl = "http://$ip:$port/description.xml"
-                val friendlyName = fetchDeviceFriendlyName(descriptionUrl) 
-                    ?: fetchDeviceFriendlyName("http://$ip:$port/dmr/description.xml")
-                    ?: fetchDeviceFriendlyName("http://$ip:$port/DeviceDescription.xml")
+                // Not Kodi, try to get DLNA device description from multiple endpoints
+                // These are all the endpoints the Chrome extension tries
+                val endpoints = listOf(
+                    "http://$ip:$port/dmr",
+                    "http://$ip:$port/DeviceDescription.xml",
+                    "http://$ip:$port/description.xml",
+                    "http://$ip:$port/dmr/description.xml",
+                    "http://$ip:$port/upnp/devicedesc.xml",
+                    "http://$ip:$port/device.xml",
+                    "http://$ip:$port/smp_8_"
+                )
+                
+                var friendlyName: String? = null
+                for (endpoint in endpoints) {
+                    friendlyName = fetchDeviceFriendlyName(endpoint)
+                    if (friendlyName != null) {
+                        Log.d(TAG, "Found friendlyName '$friendlyName' at $endpoint")
+                        break
+                    }
+                }
                 
                 val deviceName = friendlyName ?: "DLNA ($ip)"
                 Log.d(TAG, "DLNA device name resolved to: $deviceName")
