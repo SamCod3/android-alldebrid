@@ -252,18 +252,61 @@ class DeviceDiscoveryManager @Inject constructor(
         devices
     }
     
-    private suspend fun checkKodiDevice(ip: String): Device? = withTimeoutOrNull(1000) {
+    private suspend fun checkKodiDevice(ip: String): Device? = withTimeoutOrNull(1500) {
         try {
             val url = "http://$ip:$KODI_DEFAULT_PORT/jsonrpc"
             val response = kodiApi.sendCommand(url, KodiCommands.ping())
             
             if (response.isSuccessful && response.body()?.result == "pong") {
                 Log.d(TAG, "Found Kodi at $ip")
+                
+                // Try to get the system name
+                val kodiName = getKodiSystemName(ip, KODI_DEFAULT_PORT) ?: "Kodi"
+                Log.d(TAG, "Kodi name: $kodiName")
+                
                 Device(
                     id = UUID.randomUUID().toString(),
-                    name = "Kodi ($ip)",
+                    name = kodiName,
                     address = ip,
                     port = KODI_DEFAULT_PORT,
+                    type = DeviceType.KODI
+                )
+            } else null
+        } catch (e: Exception) {
+            null
+        }
+    }
+    
+    private suspend fun getKodiSystemName(ip: String, port: Int): String? {
+        return try {
+            val url = "http://$ip:$port/jsonrpc"
+            val response = kodiApi.sendCommand(url, KodiCommands.getSystemName())
+            if (response.isSuccessful) {
+                val result = response.body()?.result
+                if (result is Map<*, *>) {
+                    result["name"]?.toString()
+                } else null
+            } else null
+        } catch (e: Exception) {
+            null
+        }
+    }
+    
+    private suspend fun checkIfKodi(ip: String, port: Int): Device? {
+        return try {
+            val url = "http://$ip:$port/jsonrpc"
+            val response = withTimeoutOrNull(1000) {
+                kodiApi.sendCommand(url, KodiCommands.ping())
+            }
+            
+            if (response?.isSuccessful == true && response.body()?.result == "pong") {
+                Log.d(TAG, "Device at $ip:$port is Kodi!")
+                val kodiName = getKodiSystemName(ip, port) ?: "Kodi"
+                Device(
+                    id = UUID.randomUUID().toString(),
+                    name = kodiName,
+                    address = ip,
+                    port = port,
                     type = DeviceType.KODI
                 )
             } else null
@@ -283,7 +326,14 @@ class DeviceDiscoveryManager @Inject constructor(
                 
                 Log.d(TAG, "Found potential DLNA port $port open at $ip")
                 
-                // Try to get device description to find the friendly name
+                // First, check if it's actually Kodi on this port
+                val kodiDevice = checkIfKodi(ip, port)
+                if (kodiDevice != null) {
+                    Log.d(TAG, "Device at $ip:$port identified as Kodi: ${kodiDevice.name}")
+                    return@withContext kodiDevice
+                }
+                
+                // Not Kodi, try to get DLNA device description
                 val descriptionUrl = "http://$ip:$port/description.xml"
                 val friendlyName = fetchDeviceFriendlyName(descriptionUrl) 
                     ?: fetchDeviceFriendlyName("http://$ip:$port/dmr/description.xml")

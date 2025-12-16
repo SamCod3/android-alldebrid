@@ -37,6 +37,11 @@ data class KodiError(
 object KodiCommands {
     fun ping() = KodiRequest(method = "JSONRPC.Ping")
     
+    fun getSystemName() = KodiRequest(
+        method = "Application.GetProperties",
+        params = mapOf("properties" to listOf("name"))
+    )
+    
     fun playUrl(url: String) = KodiRequest(
         method = "Player.Open",
         params = mapOf("item" to mapOf("file" to url))
