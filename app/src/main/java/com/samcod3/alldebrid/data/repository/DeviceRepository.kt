@@ -7,9 +7,11 @@ import com.samcod3.alldebrid.data.model.Device
 import com.samcod3.alldebrid.data.model.DeviceType
 import com.samcod3.alldebrid.discovery.DeviceDiscoveryManager
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.OutputStreamWriter
 import java.net.HttpURLConnection

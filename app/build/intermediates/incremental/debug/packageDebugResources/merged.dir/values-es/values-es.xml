@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">AllDebrid Manager</string>
+    <string name="cast_to">Enviar a…</string>
+    <string name="devices_discover">Buscar Dispositivos</string>
+    <string name="devices_dlna">DLNA</string>
+    <string name="devices_empty">No hay dispositivos</string>
+    <string name="devices_kodi">Kodi</string>
+    <string name="downloads_delete">Eliminar</string>
+    <string name="downloads_empty">No hay descargas</string>
+    <string name="downloads_refresh">Actualizar</string>
+    <string name="downloads_unlock">Desbloquear</string>
+    <string name="error_network">Error de red</string>
+    <string name="error_no_api_key">Por favor configura tu clave API en Ajustes</string>
+    <string name="loading">Cargando…</string>
+    <string name="nav_devices">Dispositivos</string>
+    <string name="nav_downloads">Descargas</string>
+    <string name="nav_search">Buscar</string>
+    <string name="nav_settings">Ajustes</string>
+    <string name="search_empty">Sin resultados</string>
+    <string name="search_hint">Buscar torrents…</string>
+    <string name="settings_api_key">Clave API</string>
+    <string name="settings_api_key_hint">Introduce tu clave API de AllDebrid</string>
+    <string name="settings_jackett_api_key">Clave API de Jackett</string>
+    <string name="settings_jackett_url">URL de Jackett</string>
+    <string name="settings_save">Guardar</string>
+    <string name="settings_test_connection">Probar Conexión</string>
+    <string name="success">Éxito</string>
+</resources>

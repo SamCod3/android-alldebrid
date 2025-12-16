@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:ns1="urn:oasis:names:tc:xliff:document:1.2">
+    <string name="app_name">AllDebrid Manager</string>
     <string msgid="881409763997275156" name="call_notification_answer_action">"Responder"</string>
     <string msgid="8793775615905189152" name="call_notification_answer_video_action">"Vídeo"</string>
     <string msgid="3229508546291798546" name="call_notification_decline_action">"Rechazar"</string>
@@ -7,13 +8,25 @@
     <string msgid="6107532579223922871" name="call_notification_incoming_text">"Llamada entrante"</string>
     <string msgid="8623827134497363134" name="call_notification_ongoing_text">"Llamada en curso"</string>
     <string msgid="59049573811482460" name="call_notification_screening_text">"Filtrando una llamada entrante"</string>
+    <string name="cast_to">Enviar a…</string>
     <string msgid="406453423630273620" name="close_drawer">"Cerrar menú de navegación"</string>
     <string msgid="7573152094250666567" name="close_sheet">"Cerrar hoja"</string>
     <string msgid="8038256446254964252" name="default_error_message">"Entrada no válida"</string>
     <string msgid="6312721426453364202" name="default_popup_window_title">"Ventana emergente"</string>
+    <string name="devices_discover">Buscar Dispositivos</string>
+    <string name="devices_dlna">DLNA</string>
+    <string name="devices_empty">No hay dispositivos</string>
+    <string name="devices_kodi">Kodi</string>
+    <string name="downloads_delete">Eliminar</string>
+    <string name="downloads_empty">No hay descargas</string>
+    <string name="downloads_refresh">Actualizar</string>
+    <string name="downloads_unlock">Desbloquear</string>
     <string msgid="1890207353314751437" name="dropdown_menu">"Menú desplegable"</string>
+    <string name="error_network">Error de red</string>
+    <string name="error_no_api_key">Por favor configura tu clave API en Ajustes</string>
     <string msgid="6827826412747255547" name="in_progress">"En curso"</string>
     <string msgid="7933458017204019916" name="indeterminate">"Marcado parcialmente"</string>
+    <string name="loading">Cargando…</string>
     <string msgid="2988463736136100848" name="m3c_bottom_sheet_collapse_description">"Contrae la hoja inferior"</string>
     <string msgid="1555567894577437024" name="m3c_bottom_sheet_dismiss_description">"Cierra la hoja inferior"</string>
     <string msgid="8403354765404029791" name="m3c_bottom_sheet_drag_handle_description">"Controlador de arrastre"</string>
@@ -71,15 +84,28 @@
     <string msgid="6616362054113087709" name="m3c_time_picker_pm">"p. m."</string>
     <string msgid="1805687647081129904" name="m3c_tooltip_long_press_label">"Mostrar descripción emergente"</string>
     <string msgid="5460405025248574620" name="m3c_tooltip_pane_description">"Descripción emergente"</string>
+    <string name="nav_devices">Dispositivos</string>
+    <string name="nav_downloads">Descargas</string>
+    <string name="nav_search">Buscar</string>
+    <string name="nav_settings">Ajustes</string>
     <string msgid="542007171693138492" name="navigation_menu">"Menú de navegación"</string>
     <string msgid="6610465462668679431" name="not_selected">"No seleccionado"</string>
     <string msgid="5941395253238309765" name="range_end">"Fin del intervalo"</string>
     <string msgid="7097486360902471446" name="range_start">"Inicio del intervalo"</string>
+    <string name="search_empty">Sin resultados</string>
+    <string name="search_hint">Buscar torrents…</string>
     <string msgid="6043586758067023" name="selected">"Seleccionado"</string>
+    <string name="settings_api_key">Clave API</string>
+    <string name="settings_api_key_hint">Introduce tu clave API de AllDebrid</string>
+    <string name="settings_jackett_api_key">Clave API de Jackett</string>
+    <string name="settings_jackett_url">URL de Jackett</string>
+    <string name="settings_save">Guardar</string>
+    <string name="settings_test_connection">Probar Conexión</string>
     <string msgid="4139871816613051306" name="state_empty">"Vacío"</string>
     <string msgid="5834637030682409883" name="state_off">"Desactivado"</string>
     <string msgid="1490883874751719580" name="state_on">"Activado"</string>
     <string msgid="6277540029070332960" name="status_bar_notification_info_overflow">"999+"</string>
+    <string name="success">Éxito</string>
     <string msgid="2561197295334830845" name="switch_role">"Interruptor"</string>
     <string msgid="1672349317127674378" name="tab">"Pestaña"</string>
     <string msgid="5946805113151406391" name="template_percent">"<ns1:g id="PERCENTAGE">%1$d</ns1:g> por cien."</string>
