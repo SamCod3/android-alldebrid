@@ -113,13 +113,13 @@ class DeviceRepository @Inject constructor(
     }
     
     private suspend fun castToDlna(device: Device, videoUrl: String): Result<Unit> = withContext(Dispatchers.IO) {
-        // Try multiple common DLNA endpoints
+        // Try multiple common DLNA endpoints - AVTransport1 is the correct one for Samsung
         val possibleEndpoints = listOf(
+            "http://${device.address}:${device.port}/upnp/control/AVTransport1", // Samsung/LG - CORRECT
             "${device.controlUrl ?: "http://${device.address}:${device.port}"}",
-            "http://${device.address}:${device.port}/upnp/control/rendertransport1",
-            "http://${device.address}:${device.port}/AVTransport/control",
+            "http://${device.address}:9197/upnp/control/AVTransport1", // Samsung default port
             "http://${device.address}:${device.port}/MediaRenderer/AVTransport/Control",
-            "http://${device.address}:${device.port}/dmr" // Samsung Smart TVs
+            "http://${device.address}:${device.port}/AVTransport/control"
         ).distinct()
         
         var lastError: Exception? = null
