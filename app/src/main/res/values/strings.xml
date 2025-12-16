@@ -40,4 +40,10 @@
     <string name="success">Success</string>
     <string name="loading">Loading…</string>
     <string name="cast_to">Cast to…</string>
+    
+    <!-- Device Selector -->
+    <string name="device_selector_title">Select Device</string>
+    <string name="device_selector_empty">No devices found. Tap \'Discover\' to scan.</string>
+    <string name="device_selector_discover">Discover</string>
+    <string name="cancel">Cancel</string>
 </resources>

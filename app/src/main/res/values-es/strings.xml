@@ -41,4 +41,10 @@
     <string name="success">Éxito</string>
     <string name="loading">Cargando…</string>
     <string name="cast_to">Enviar a…</string>
+    
+    <!-- Device Selector -->
+    <string name="device_selector_title">Seleccionar Dispositivo</string>
+    <string name="device_selector_empty">No hay dispositivos. Toca \'Buscar\' para escanear.</string>
+    <string name="device_selector_discover">Buscar</string>
+    <string name="cancel">Cancelar</string>
 </resources>

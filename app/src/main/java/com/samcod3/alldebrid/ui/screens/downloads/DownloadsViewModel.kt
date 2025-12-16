@@ -24,6 +24,7 @@ data class DownloadsUiState(
     val error: String? = null,
     val requiresIpAuthorization: Boolean = false,
     val selectedDevice: Device? = null,
+    val discoveredDevices: List<Device> = emptyList(),
     val castingMessage: String? = null,
     val showKodiQueueDialog: Boolean = false,
     val pendingCastLink: String? = null
@@ -42,6 +43,7 @@ class DownloadsViewModel @Inject constructor(
 
     init {
         observeSelectedDevice()
+        observeDiscoveredDevices()
         refresh()
     }
     
@@ -50,6 +52,20 @@ class DownloadsViewModel @Inject constructor(
             deviceRepository.getSelectedDevice().collect { device ->
                 _uiState.update { it.copy(selectedDevice = device) }
             }
+        }
+    }
+    
+    private fun observeDiscoveredDevices() {
+        viewModelScope.launch {
+            deviceRepository.getDiscoveredDevices().collect { devices ->
+                _uiState.update { it.copy(discoveredDevices = devices) }
+            }
+        }
+    }
+    
+    fun selectDevice(device: Device) {
+        viewModelScope.launch {
+            deviceRepository.setSelectedDevice(device)
         }
     }
 
