@@ -2,12 +2,21 @@ package com.samcod3.alldebrid.data.repository
 
 import com.samcod3.alldebrid.data.api.AllDebridApi
 import com.samcod3.alldebrid.data.datastore.SettingsDataStore
+import com.samcod3.alldebrid.data.model.AllDebridError
 import com.samcod3.alldebrid.data.model.Link
 import com.samcod3.alldebrid.data.model.Magnet
 import com.samcod3.alldebrid.data.model.User
 import kotlinx.coroutines.flow.first
 import javax.inject.Inject
 import javax.inject.Singleton
+
+/**
+ * Custom exception for IP authorization required errors
+ */
+class IpAuthorizationRequiredException(
+    val errorCode: String,
+    override val message: String = "IP authorization required. Please authorize this IP address."
+) : Exception(message)
 
 @Singleton
 class AllDebridRepository @Inject constructor(
@@ -19,16 +28,36 @@ class AllDebridRepository @Inject constructor(
         return settingsDataStore.apiKey.first()
     }
     
+    /**
+     * Check if the error requires IP authorization
+     */
+    private fun checkForIpError(errorCode: String?, errorMessage: String?): Nothing? {
+        if (errorCode != null && AllDebridError.requiresIpAuthorization(errorCode)) {
+            throw IpAuthorizationRequiredException(
+                errorCode = errorCode,
+                message = errorMessage ?: "IP authorization required"
+            )
+        }
+        return null
+    }
+    
     suspend fun validateApiKey(apiKey: String): Result<User> {
         return try {
             val response = api.getUser(apiKey = apiKey)
-            if (response.isSuccessful && response.body()?.status == "success") {
-                response.body()?.data?.user?.let {
+            val body = response.body()
+            
+            if (response.isSuccessful && body?.status == "success") {
+                body.data?.user?.let {
                     Result.success(it)
                 } ?: Result.failure(Exception("Invalid response"))
             } else {
-                Result.failure(Exception("API error: ${response.code()}"))
+                // Check for IP authorization errors
+                val error = body?.error
+                checkForIpError(error?.code, error?.message)
+                Result.failure(Exception("API error: ${error?.message ?: response.code()}"))
             }
+        } catch (e: IpAuthorizationRequiredException) {
+            Result.failure(e)
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -42,12 +71,18 @@ class AllDebridRepository @Inject constructor(
             }
             
             val response = api.getMagnets(apiKey = apiKey)
-            if (response.isSuccessful && response.body()?.status == "success") {
-                val magnets = response.body()?.data?.magnets ?: emptyList()
+            val body = response.body()
+            
+            if (response.isSuccessful && body?.status == "success") {
+                val magnets = body.data?.magnets ?: emptyList()
                 Result.success(magnets)
             } else {
-                Result.failure(Exception("API error: ${response.code()}"))
+                val error = body?.error
+                checkForIpError(error?.code, error?.message)
+                Result.failure(Exception("API error: ${error?.message ?: response.code()}"))
             }
+        } catch (e: IpAuthorizationRequiredException) {
+            Result.failure(e)
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -61,12 +96,17 @@ class AllDebridRepository @Inject constructor(
             }
             
             val response = api.uploadMagnet(apiKey = apiKey, magnet = magnet)
-            if (response.isSuccessful && response.body()?.status == "success") {
+            val body = response.body()
+            
+            if (response.isSuccessful && body?.status == "success") {
                 Result.success(Unit)
             } else {
-                val error = response.body()?.error?.message ?: "Upload failed"
-                Result.failure(Exception(error))
+                val error = body?.error
+                checkForIpError(error?.code, error?.message)
+                Result.failure(Exception(error?.message ?: "Upload failed"))
             }
+        } catch (e: IpAuthorizationRequiredException) {
+            Result.failure(e)
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -80,11 +120,17 @@ class AllDebridRepository @Inject constructor(
             }
             
             val response = api.deleteMagnet(apiKey = apiKey, id = id)
-            if (response.isSuccessful && response.body()?.status == "success") {
+            val body = response.body()
+            
+            if (response.isSuccessful && body?.status == "success") {
                 Result.success(Unit)
             } else {
+                val error = body?.error
+                checkForIpError(error?.code, error?.message)
                 Result.failure(Exception("Delete failed"))
             }
+        } catch (e: IpAuthorizationRequiredException) {
+            Result.failure(e)
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -98,14 +144,19 @@ class AllDebridRepository @Inject constructor(
             }
             
             val response = api.unlockLink(apiKey = apiKey, link = link)
-            if (response.isSuccessful && response.body()?.status == "success") {
-                response.body()?.data?.let {
+            val body = response.body()
+            
+            if (response.isSuccessful && body?.status == "success") {
+                body.data?.let {
                     Result.success(it)
                 } ?: Result.failure(Exception("Invalid response"))
             } else {
-                val error = response.body()?.error?.message ?: "Unlock failed"
-                Result.failure(Exception(error))
+                val error = body?.error
+                checkForIpError(error?.code, error?.message)
+                Result.failure(Exception(error?.message ?: "Unlock failed"))
             }
+        } catch (e: IpAuthorizationRequiredException) {
+            Result.failure(e)
         } catch (e: Exception) {
             Result.failure(e)
         }

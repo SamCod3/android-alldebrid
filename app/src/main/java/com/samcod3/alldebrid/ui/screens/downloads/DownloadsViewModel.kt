@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.samcod3.alldebrid.data.model.Magnet
 import com.samcod3.alldebrid.data.repository.AllDebridRepository
+import com.samcod3.alldebrid.data.repository.IpAuthorizationRequiredException
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -15,7 +16,8 @@ import javax.inject.Inject
 data class DownloadsUiState(
     val isLoading: Boolean = false,
     val magnets: List<Magnet> = emptyList(),
-    val error: String? = null
+    val error: String? = null,
+    val requiresIpAuthorization: Boolean = false
 )
 
 @HiltViewModel
@@ -32,13 +34,13 @@ class DownloadsViewModel @Inject constructor(
 
     fun refresh() {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, error = null) }
+            _uiState.update { it.copy(isLoading = true, error = null, requiresIpAuthorization = false) }
             repository.getMagnets()
                 .onSuccess { magnets ->
                     _uiState.update { it.copy(isLoading = false, magnets = magnets) }
                 }
                 .onFailure { error ->
-                    _uiState.update { it.copy(isLoading = false, error = error.message) }
+                    handleError(error)
                 }
         }
     }
@@ -48,7 +50,7 @@ class DownloadsViewModel @Inject constructor(
             repository.deleteMagnet(id)
                 .onSuccess { refresh() }
                 .onFailure { error ->
-                    _uiState.update { it.copy(error = error.message) }
+                    handleError(error)
                 }
         }
     }
@@ -60,8 +62,24 @@ class DownloadsViewModel @Inject constructor(
                     // TODO: Handle unlocked link - show dialog or copy to clipboard
                 }
                 .onFailure { error ->
-                    _uiState.update { it.copy(error = error.message) }
+                    handleError(error)
                 }
         }
+    }
+    
+    private fun handleError(error: Throwable) {
+        if (error is IpAuthorizationRequiredException) {
+            _uiState.update { it.copy(
+                isLoading = false,
+                requiresIpAuthorization = true,
+                error = "IP authorization required. Tap to authorize."
+            )}
+        } else {
+            _uiState.update { it.copy(isLoading = false, error = error.message) }
+        }
+    }
+    
+    fun clearIpAuthorizationFlag() {
+        _uiState.update { it.copy(requiresIpAuthorization = false) }
     }
 }

@@ -30,6 +30,7 @@ import com.samcod3.alldebrid.R
 import com.samcod3.alldebrid.ui.screens.devices.DevicesScreen
 import com.samcod3.alldebrid.ui.screens.downloads.DownloadsScreen
 import com.samcod3.alldebrid.ui.screens.login.ApiKeyManagerScreen
+import com.samcod3.alldebrid.ui.screens.login.IpAuthorizationScreen
 import com.samcod3.alldebrid.ui.screens.login.WebLoginScreen
 import com.samcod3.alldebrid.ui.screens.search.SearchScreen
 import com.samcod3.alldebrid.ui.screens.settings.SettingsScreen
@@ -72,6 +73,7 @@ sealed class Screen(
 // Routes for login/key management (not in bottom nav)
 const val WEB_LOGIN_ROUTE = "web_login"
 const val API_KEY_MANAGER_ROUTE = "api_key_manager"
+const val IP_AUTHORIZATION_ROUTE = "ip_authorization"
 
 val bottomNavItems = listOf(
     Screen.Downloads,
@@ -128,7 +130,11 @@ fun AllDebridNavHost() {
             modifier = Modifier.padding(innerPadding)
         ) {
             composable(Screen.Downloads.route) {
-                DownloadsScreen()
+                DownloadsScreen(
+                    onNavigateToIpAuth = {
+                        navController.navigate(IP_AUTHORIZATION_ROUTE)
+                    }
+                )
             }
             composable(Screen.Search.route) {
                 SearchScreen()
@@ -160,6 +166,16 @@ fun AllDebridNavHost() {
                 WebLoginScreen(
                     onApiKeyExtracted = { _ ->
                         // After login, go back to API key manager
+                        navController.popBackStack()
+                    },
+                    onBack = {
+                        navController.popBackStack()
+                    }
+                )
+            }
+            composable(IP_AUTHORIZATION_ROUTE) {
+                IpAuthorizationScreen(
+                    onComplete = {
                         navController.popBackStack()
                     },
                     onBack = {
