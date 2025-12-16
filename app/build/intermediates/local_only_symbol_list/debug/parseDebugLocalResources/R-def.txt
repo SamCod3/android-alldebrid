@@ -25,9 +25,12 @@ string search_empty
 string search_hint
 string settings_api_key
 string settings_api_key_hint
+string settings_device_discovery
+string settings_ip_prefix
 string settings_jackett_api_key
 string settings_jackett_url
 string settings_save
 string settings_test_connection
+string settings_use_custom_ip
 string success
 style Theme.AllDebridManager

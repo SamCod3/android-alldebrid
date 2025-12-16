@@ -97,10 +97,13 @@
     <string msgid="6043586758067023" name="selected">"Seleccionado"</string>
     <string name="settings_api_key">Clave API</string>
     <string name="settings_api_key_hint">Introduce tu clave API de AllDebrid</string>
+    <string name="settings_device_discovery">Descubrimiento de Dispositivos (Pruebas)</string>
+    <string name="settings_ip_prefix">Prefijo IP (ej. 192.168.1)</string>
     <string name="settings_jackett_api_key">Clave API de Jackett</string>
     <string name="settings_jackett_url">URL de Jackett</string>
     <string name="settings_save">Guardar</string>
     <string name="settings_test_connection">Probar Conexión</string>
+    <string name="settings_use_custom_ip">Usar rango IP personalizado</string>
     <string msgid="4139871816613051306" name="state_empty">"Vacío"</string>
     <string msgid="5834637030682409883" name="state_off">"Desactivado"</string>
     <string msgid="1490883874751719580" name="state_on">"Activado"</string>

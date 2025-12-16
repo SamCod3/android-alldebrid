@@ -113,67 +113,63 @@ class DeviceRepository @Inject constructor(
     }
     
     private suspend fun castToDlna(device: Device, videoUrl: String): Result<Unit> = withContext(Dispatchers.IO) {
-        try {
-            // Basic DLNA casting via SOAP
-            // 1. SetAVTransportURI
-            // 2. Play
-            
-            val controlUrl = device.controlUrl ?: "http://${device.address}:${device.port}/"
-            // Note: In a real UPnP impl, we need the specific control URL for AVTransport service.
-            // For now, we try checking if we can guess or if discovery provided a better URL.
-            // If discovery gave us a root desc URL (e.g. http://ip:port/desc.xml), we likely need to resolve it.
-            // For simple implementation (emulator testing), we assume standard paths or try common ones if controlUrl is just root.
-            
-            // NOTE: This is a simplified "Blind Cast" approach. Better approach parses description.xml.
-            // Assuming controlUrl might need suffix like /AVTransport/control or /Control/AVTransport
-            
-            // Construct target URL (often requires service path)
-            // Ideally we should have parsed this during discovery. 
-            // For now let's try a common heuristic or use what discovery provided.
-            
-            val targetUrl = if (controlUrl.endsWith(".xml")) {
-                 // It's likely description URL, need to find control URL. 
-                 // Skipping XML parsing for now, assuming standard paths.
-                 "http://${device.address}:${device.port}/AVTransport/control" 
-            } else {
-                 controlUrl
+        // Try multiple common DLNA endpoints
+        val possibleEndpoints = listOf(
+            "${device.controlUrl ?: "http://${device.address}:${device.port}"}",
+            "http://${device.address}:${device.port}/upnp/control/rendertransport1",
+            "http://${device.address}:${device.port}/AVTransport/control",
+            "http://${device.address}:${device.port}/MediaRenderer/AVTransport/Control",
+            "http://${device.address}:${device.port}/dmr" // Samsung Smart TVs
+        ).distinct()
+        
+        var lastError: Exception? = null
+        
+        for (endpoint in possibleEndpoints) {
+            try {
+                android.util.Log.d("DLNA_CAST", "Trying endpoint: $endpoint")
+                
+                // 1. SetAVTransportURI
+                val setUriSoap = """
+                    <?xml version="1.0" encoding="utf-8"?>
+                    <s:Envelope s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" xmlns:s="http://schemas.xmlsoap.org/soap/envelope/">
+                        <s:Body>
+                            <u:SetAVTransportURI xmlns:u="urn:schemas-upnp-org:service:AVTransport:1">
+                                <InstanceID>0</InstanceID>
+                                <CurrentURI>$videoUrl</CurrentURI>
+                                <CurrentURIMetaData></CurrentURIMetaData>
+                            </u:SetAVTransportURI>
+                        </s:Body>
+                    </s:Envelope>
+                """.trimIndent()
+                
+                sendSoapAction(endpoint, "urn:schemas-upnp-org:service:AVTransport:1#SetAVTransportURI", setUriSoap)
+                
+                // 2. Play
+                val playSoap = """
+                    <?xml version="1.0" encoding="utf-8"?>
+                    <s:Envelope s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" xmlns:s="http://schemas.xmlsoap.org/soap/envelope/">
+                        <s:Body>
+                            <u:Play xmlns:u="urn:schemas-upnp-org:service:AVTransport:1">
+                                <InstanceID>0</InstanceID>
+                                <Speed>1</Speed>
+                            </u:Play>
+                        </s:Body>
+                    </s:Envelope>
+                """.trimIndent()
+                
+                sendSoapAction(endpoint, "urn:schemas-upnp-org:service:AVTransport:1#Play", playSoap)
+                
+                android.util.Log.d("DLNA_CAST", "SUCCESS with endpoint: $endpoint")
+                return@withContext Result.success(Unit)
+            } catch (e: Exception) {
+                android.util.Log.w("DLNA_CAST", "Failed with $endpoint: ${e.message}")
+                lastError = e
+                // Continue to next endpoint
             }
-
-            // 1. SetAVTransportURI
-            val setUriSoap = """
-                <?xml version="1.0" encoding="utf-8"?>
-                <s:Envelope s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" xmlns:s="http://schemas.xmlsoap.org/soap/envelope/">
-                    <s:Body>
-                        <u:SetAVTransportURI xmlns:u="urn:schemas-upnp-org:service:AVTransport:1">
-                            <InstanceID>0</InstanceID>
-                            <CurrentURI>$videoUrl</CurrentURI>
-                            <CurrentURIMetaData></CurrentURIMetaData>
-                        </u:SetAVTransportURI>
-                    </s:Body>
-                </s:Envelope>
-            """.trimIndent()
-            
-            sendSoapAction(targetUrl, "urn:schemas-upnp-org:service:AVTransport:1#SetAVTransportURI", setUriSoap)
-            
-            // 2. Play
-            val playSoap = """
-                <?xml version="1.0" encoding="utf-8"?>
-                <s:Envelope s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" xmlns:s="http://schemas.xmlsoap.org/soap/envelope/">
-                    <s:Body>
-                        <u:Play xmlns:u="urn:schemas-upnp-org:service:AVTransport:1">
-                            <InstanceID>0</InstanceID>
-                            <Speed>1</Speed>
-                        </u:Play>
-                    </s:Body>
-                </s:Envelope>
-            """.trimIndent()
-            
-            sendSoapAction(targetUrl, "urn:schemas-upnp-org:service:AVTransport:1#Play", playSoap)
-            
-            Result.success(Unit)
-        } catch (e: Exception) {
-            Result.failure(e)
         }
+        
+        // All endpoints failed
+        Result.failure(lastError ?: Exception("All DLNA endpoints failed"))
     }
     
     private fun sendSoapAction(urlStr: String, soapAction: String, xmlBody: String) {
