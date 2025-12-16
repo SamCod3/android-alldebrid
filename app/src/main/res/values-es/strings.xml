@@ -15,6 +15,9 @@
     <string name="settings_test_connection">Probar Conexión</string>
     <string name="settings_jackett_url">URL de Jackett</string>
     <string name="settings_jackett_api_key">Clave API de Jackett</string>
+    <string name="settings_device_discovery">Descubrimiento de Dispositivos (Pruebas)</string>
+    <string name="settings_use_custom_ip">Usar rango IP personalizado</string>
+    <string name="settings_ip_prefix">Prefijo IP (ej. 192.168.1)</string>
     
     <!-- Downloads -->
     <string name="downloads_empty">No hay descargas</string>

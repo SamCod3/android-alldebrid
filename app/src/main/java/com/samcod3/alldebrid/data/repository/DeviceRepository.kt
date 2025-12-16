@@ -11,6 +11,7 @@ import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.OutputStreamWriter
@@ -30,12 +31,10 @@ class DeviceRepository @Inject constructor(
     
     init {
         // Load cached devices on init
-        // Using viewModelScope equivalent (GlobalScope for simplicity)
-        kotlinx.coroutines.GlobalScope.launch {
-            settingsDataStore.getDiscoveredDevicesCache().collect { cachedDevices ->
-                if (_devices.value.isEmpty() && cachedDevices.isNotEmpty()) {
-                    _devices.value = cachedDevices
-                }
+        GlobalScope.launch {
+            val cachedDevices = settingsDataStore.getDiscoveredDevicesCache().first()
+            if (cachedDevices.isNotEmpty()) {
+                _devices.value = cachedDevices
             }
         }
     }

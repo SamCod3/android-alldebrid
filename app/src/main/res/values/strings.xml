@@ -14,6 +14,9 @@
     <string name="settings_test_connection">Test Connection</string>
     <string name="settings_jackett_url">Jackett URL</string>
     <string name="settings_jackett_api_key">Jackett API Key</string>
+    <string name="settings_device_discovery">Device Discovery (Testing)</string>
+    <string name="settings_use_custom_ip">Use custom IP range</string>
+    <string name="settings_ip_prefix">IP prefix (e.g. 192.168.1)</string>
     
     <!-- Downloads -->
     <string name="downloads_empty">No downloads found</string>
