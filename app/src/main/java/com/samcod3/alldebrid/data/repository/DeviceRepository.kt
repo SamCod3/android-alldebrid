@@ -177,17 +177,33 @@ class DeviceRepository @Inject constructor(
         val connection = url.openConnection() as HttpURLConnection
         connection.requestMethod = "POST"
         connection.doOutput = true
-        connection.setRequestProperty("Content-Type", "text/xml; charset=\"utf-8\"")
-        connection.setRequestProperty("SOAPAction", "\"$soapAction\"")
+        connection.connectTimeout = 5000
+        connection.readTimeout = 5000
         
-        val writer = OutputStreamWriter(connection.outputStream)
+        // Headers matching browser extension
+        connection.setRequestProperty("Content-Type", "text/xml; charset=utf-8")
+        connection.setRequestProperty("SOAPAction", "\"$soapAction\"")
+        connection.setRequestProperty("Connection", "close")
+        
+        android.util.Log.d("DLNA_CAST", "Sending to: $urlStr")
+        android.util.Log.d("DLNA_CAST", "SOAPAction: $soapAction")
+        
+        val writer = OutputStreamWriter(connection.outputStream, Charsets.UTF_8)
         writer.write(xmlBody)
         writer.flush()
         writer.close()
         
         val responseCode = connection.responseCode
+        android.util.Log.d("DLNA_CAST", "Response code: $responseCode")
+        
         if (responseCode !in 200..299) {
-            throw Exception("SOAP Action failed with code $responseCode")
+            // Read error response for debugging
+            val errorStream = connection.errorStream
+            val errorBody = errorStream?.bufferedReader()?.readText() ?: "No error body"
+            android.util.Log.e("DLNA_CAST", "Error body: $errorBody")
+            throw Exception("SOAP failed ($responseCode): ${errorBody.take(100)}")
         }
+        
+        connection.disconnect()
     }
 }
