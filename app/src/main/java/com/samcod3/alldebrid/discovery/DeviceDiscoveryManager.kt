@@ -49,8 +49,15 @@ class DeviceDiscoveryManager @Inject constructor(
     
     private suspend fun discoverSsdp(): List<Device> = withContext(Dispatchers.IO) {
         val devices = mutableListOf<Device>()
+        var multicastLock: android.net.wifi.WifiManager.MulticastLock? = null
         
         try {
+            // Acquire multicast lock - critical for receiving SSDP responses
+            val wifiManager = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as android.net.wifi.WifiManager
+            multicastLock = wifiManager.createMulticastLock("AllDebrid_SSDP")
+            multicastLock.acquire()
+            Log.d(TAG, "Multicast lock acquired")
+            
             val socket = DatagramSocket()
             socket.soTimeout = DISCOVERY_TIMEOUT.toInt()
             socket.broadcast = true
@@ -74,7 +81,7 @@ class DeviceDiscoveryManager @Inject constructor(
             )
             
             socket.send(sendPacket)
-            Log.d(TAG, "Sent SSDP M-SEARCH")
+            Log.d(TAG, "Sent SSDP M-SEARCH to $SSDP_ADDRESS:$SSDP_PORT")
             
             // Receive responses
             val receiveData = ByteArray(2048)
@@ -90,6 +97,7 @@ class DeviceDiscoveryManager @Inject constructor(
                     
                     parseSsdpResponse(response, receivePacket.address.hostAddress ?: "")?.let {
                         devices.add(it)
+                        Log.d(TAG, "Found DLNA device: ${it.name} at ${it.address}")
                     }
                 } catch (e: Exception) {
                     // Timeout or other error, continue
@@ -97,8 +105,17 @@ class DeviceDiscoveryManager @Inject constructor(
             }
             
             socket.close()
+            Log.d(TAG, "SSDP discovery completed, found ${devices.size} devices")
         } catch (e: Exception) {
             Log.e(TAG, "SSDP discovery error", e)
+        } finally {
+            // Always release multicast lock
+            multicastLock?.let {
+                if (it.isHeld) {
+                    it.release()
+                    Log.d(TAG, "Multicast lock released")
+                }
+            }
         }
         
         devices
