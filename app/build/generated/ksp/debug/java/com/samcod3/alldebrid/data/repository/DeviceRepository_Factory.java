@@ -32,27 +32,32 @@ public final class DeviceRepository_Factory implements Factory<DeviceRepository>
 
   private final Provider<DeviceDiscoveryManager> discoveryManagerProvider;
 
+  private final Provider<DlnaQueueManager> dlnaQueueProvider;
+
   public DeviceRepository_Factory(Provider<KodiApi> kodiApiProvider,
       Provider<SettingsDataStore> settingsDataStoreProvider,
-      Provider<DeviceDiscoveryManager> discoveryManagerProvider) {
+      Provider<DeviceDiscoveryManager> discoveryManagerProvider,
+      Provider<DlnaQueueManager> dlnaQueueProvider) {
     this.kodiApiProvider = kodiApiProvider;
     this.settingsDataStoreProvider = settingsDataStoreProvider;
     this.discoveryManagerProvider = discoveryManagerProvider;
+    this.dlnaQueueProvider = dlnaQueueProvider;
   }
 
   @Override
   public DeviceRepository get() {
-    return newInstance(kodiApiProvider.get(), settingsDataStoreProvider.get(), discoveryManagerProvider.get());
+    return newInstance(kodiApiProvider.get(), settingsDataStoreProvider.get(), discoveryManagerProvider.get(), dlnaQueueProvider.get());
   }
 
   public static DeviceRepository_Factory create(Provider<KodiApi> kodiApiProvider,
       Provider<SettingsDataStore> settingsDataStoreProvider,
-      Provider<DeviceDiscoveryManager> discoveryManagerProvider) {
-    return new DeviceRepository_Factory(kodiApiProvider, settingsDataStoreProvider, discoveryManagerProvider);
+      Provider<DeviceDiscoveryManager> discoveryManagerProvider,
+      Provider<DlnaQueueManager> dlnaQueueProvider) {
+    return new DeviceRepository_Factory(kodiApiProvider, settingsDataStoreProvider, discoveryManagerProvider, dlnaQueueProvider);
   }
 
   public static DeviceRepository newInstance(KodiApi kodiApi, SettingsDataStore settingsDataStore,
-      DeviceDiscoveryManager discoveryManager) {
-    return new DeviceRepository(kodiApi, settingsDataStore, discoveryManager);
+      DeviceDiscoveryManager discoveryManager, DlnaQueueManager dlnaQueue) {
+    return new DeviceRepository(kodiApi, settingsDataStore, discoveryManager, dlnaQueue);
   }
 }

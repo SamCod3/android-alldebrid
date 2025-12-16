@@ -13,6 +13,7 @@ import com.samcod3.alldebrid.data.api.KodiApi;
 import com.samcod3.alldebrid.data.datastore.SettingsDataStore;
 import com.samcod3.alldebrid.data.repository.AllDebridRepository;
 import com.samcod3.alldebrid.data.repository.DeviceRepository;
+import com.samcod3.alldebrid.data.repository.DlnaQueueManager;
 import com.samcod3.alldebrid.data.repository.JackettRepository;
 import com.samcod3.alldebrid.di.AppModule_ProvideAllDebridApiFactory;
 import com.samcod3.alldebrid.di.AppModule_ProvideAllDebridRetrofitFactory;
@@ -415,30 +416,30 @@ public final class DaggerAllDebridApp_HiltComponents_SingletonC {
 
     @IdentifierNameString
     private static final class LazyClassKeyProvider {
-      static String com_samcod3_alldebrid_ui_screens_search_SearchViewModel = "com.samcod3.alldebrid.ui.screens.search.SearchViewModel";
-
-      static String com_samcod3_alldebrid_ui_screens_devices_DevicesViewModel = "com.samcod3.alldebrid.ui.screens.devices.DevicesViewModel";
-
-      static String com_samcod3_alldebrid_ui_screens_settings_SettingsViewModel = "com.samcod3.alldebrid.ui.screens.settings.SettingsViewModel";
+      static String com_samcod3_alldebrid_ui_screens_login_ApiKeyManagerViewModel = "com.samcod3.alldebrid.ui.screens.login.ApiKeyManagerViewModel";
 
       static String com_samcod3_alldebrid_ui_screens_downloads_DownloadsViewModel = "com.samcod3.alldebrid.ui.screens.downloads.DownloadsViewModel";
 
-      static String com_samcod3_alldebrid_ui_screens_login_ApiKeyManagerViewModel = "com.samcod3.alldebrid.ui.screens.login.ApiKeyManagerViewModel";
+      static String com_samcod3_alldebrid_ui_screens_devices_DevicesViewModel = "com.samcod3.alldebrid.ui.screens.devices.DevicesViewModel";
+
+      static String com_samcod3_alldebrid_ui_screens_search_SearchViewModel = "com.samcod3.alldebrid.ui.screens.search.SearchViewModel";
+
+      static String com_samcod3_alldebrid_ui_screens_settings_SettingsViewModel = "com.samcod3.alldebrid.ui.screens.settings.SettingsViewModel";
 
       @KeepFieldType
-      SearchViewModel com_samcod3_alldebrid_ui_screens_search_SearchViewModel2;
-
-      @KeepFieldType
-      DevicesViewModel com_samcod3_alldebrid_ui_screens_devices_DevicesViewModel2;
-
-      @KeepFieldType
-      SettingsViewModel com_samcod3_alldebrid_ui_screens_settings_SettingsViewModel2;
+      ApiKeyManagerViewModel com_samcod3_alldebrid_ui_screens_login_ApiKeyManagerViewModel2;
 
       @KeepFieldType
       DownloadsViewModel com_samcod3_alldebrid_ui_screens_downloads_DownloadsViewModel2;
 
       @KeepFieldType
-      ApiKeyManagerViewModel com_samcod3_alldebrid_ui_screens_login_ApiKeyManagerViewModel2;
+      DevicesViewModel com_samcod3_alldebrid_ui_screens_devices_DevicesViewModel2;
+
+      @KeepFieldType
+      SearchViewModel com_samcod3_alldebrid_ui_screens_search_SearchViewModel2;
+
+      @KeepFieldType
+      SettingsViewModel com_samcod3_alldebrid_ui_screens_settings_SettingsViewModel2;
     }
   }
 
@@ -491,30 +492,30 @@ public final class DaggerAllDebridApp_HiltComponents_SingletonC {
 
     @IdentifierNameString
     private static final class LazyClassKeyProvider {
-      static String com_samcod3_alldebrid_ui_screens_downloads_DownloadsViewModel = "com.samcod3.alldebrid.ui.screens.downloads.DownloadsViewModel";
-
-      static String com_samcod3_alldebrid_ui_screens_login_ApiKeyManagerViewModel = "com.samcod3.alldebrid.ui.screens.login.ApiKeyManagerViewModel";
-
-      static String com_samcod3_alldebrid_ui_screens_settings_SettingsViewModel = "com.samcod3.alldebrid.ui.screens.settings.SettingsViewModel";
+      static String com_samcod3_alldebrid_ui_screens_devices_DevicesViewModel = "com.samcod3.alldebrid.ui.screens.devices.DevicesViewModel";
 
       static String com_samcod3_alldebrid_ui_screens_search_SearchViewModel = "com.samcod3.alldebrid.ui.screens.search.SearchViewModel";
 
-      static String com_samcod3_alldebrid_ui_screens_devices_DevicesViewModel = "com.samcod3.alldebrid.ui.screens.devices.DevicesViewModel";
+      static String com_samcod3_alldebrid_ui_screens_login_ApiKeyManagerViewModel = "com.samcod3.alldebrid.ui.screens.login.ApiKeyManagerViewModel";
+
+      static String com_samcod3_alldebrid_ui_screens_downloads_DownloadsViewModel = "com.samcod3.alldebrid.ui.screens.downloads.DownloadsViewModel";
+
+      static String com_samcod3_alldebrid_ui_screens_settings_SettingsViewModel = "com.samcod3.alldebrid.ui.screens.settings.SettingsViewModel";
 
       @KeepFieldType
-      DownloadsViewModel com_samcod3_alldebrid_ui_screens_downloads_DownloadsViewModel2;
-
-      @KeepFieldType
-      ApiKeyManagerViewModel com_samcod3_alldebrid_ui_screens_login_ApiKeyManagerViewModel2;
-
-      @KeepFieldType
-      SettingsViewModel com_samcod3_alldebrid_ui_screens_settings_SettingsViewModel2;
+      DevicesViewModel com_samcod3_alldebrid_ui_screens_devices_DevicesViewModel2;
 
       @KeepFieldType
       SearchViewModel com_samcod3_alldebrid_ui_screens_search_SearchViewModel2;
 
       @KeepFieldType
-      DevicesViewModel com_samcod3_alldebrid_ui_screens_devices_DevicesViewModel2;
+      ApiKeyManagerViewModel com_samcod3_alldebrid_ui_screens_login_ApiKeyManagerViewModel2;
+
+      @KeepFieldType
+      DownloadsViewModel com_samcod3_alldebrid_ui_screens_downloads_DownloadsViewModel2;
+
+      @KeepFieldType
+      SettingsViewModel com_samcod3_alldebrid_ui_screens_settings_SettingsViewModel2;
     }
 
     private static final class SwitchingProvider<T> implements Provider<T> {
@@ -645,6 +646,8 @@ public final class DaggerAllDebridApp_HiltComponents_SingletonC {
 
     private Provider<DeviceDiscoveryManager> deviceDiscoveryManagerProvider;
 
+    private Provider<DlnaQueueManager> dlnaQueueManagerProvider;
+
     private Provider<DeviceRepository> deviceRepositoryProvider;
 
     private Provider<Retrofit> provideAllDebridRetrofitProvider;
@@ -671,12 +674,13 @@ public final class DaggerAllDebridApp_HiltComponents_SingletonC {
       this.provideGenericRetrofitProvider = DoubleCheck.provider(new SwitchingProvider<Retrofit>(singletonCImpl, 4));
       this.provideKodiApiProvider = DoubleCheck.provider(new SwitchingProvider<KodiApi>(singletonCImpl, 3));
       this.deviceDiscoveryManagerProvider = DoubleCheck.provider(new SwitchingProvider<DeviceDiscoveryManager>(singletonCImpl, 6));
+      this.dlnaQueueManagerProvider = DoubleCheck.provider(new SwitchingProvider<DlnaQueueManager>(singletonCImpl, 7));
       this.deviceRepositoryProvider = DoubleCheck.provider(new SwitchingProvider<DeviceRepository>(singletonCImpl, 2));
-      this.provideAllDebridRetrofitProvider = DoubleCheck.provider(new SwitchingProvider<Retrofit>(singletonCImpl, 9));
-      this.provideAllDebridApiProvider = DoubleCheck.provider(new SwitchingProvider<AllDebridApi>(singletonCImpl, 8));
-      this.allDebridRepositoryProvider = DoubleCheck.provider(new SwitchingProvider<AllDebridRepository>(singletonCImpl, 7));
-      this.provideJackettApiProvider = DoubleCheck.provider(new SwitchingProvider<JackettApi>(singletonCImpl, 11));
-      this.jackettRepositoryProvider = DoubleCheck.provider(new SwitchingProvider<JackettRepository>(singletonCImpl, 10));
+      this.provideAllDebridRetrofitProvider = DoubleCheck.provider(new SwitchingProvider<Retrofit>(singletonCImpl, 10));
+      this.provideAllDebridApiProvider = DoubleCheck.provider(new SwitchingProvider<AllDebridApi>(singletonCImpl, 9));
+      this.allDebridRepositoryProvider = DoubleCheck.provider(new SwitchingProvider<AllDebridRepository>(singletonCImpl, 8));
+      this.provideJackettApiProvider = DoubleCheck.provider(new SwitchingProvider<JackettApi>(singletonCImpl, 12));
+      this.jackettRepositoryProvider = DoubleCheck.provider(new SwitchingProvider<JackettRepository>(singletonCImpl, 11));
     }
 
     @Override
@@ -719,7 +723,7 @@ public final class DaggerAllDebridApp_HiltComponents_SingletonC {
           return (T) AppModule_ProvideSettingsDataStoreFactory.provideSettingsDataStore(ApplicationContextModule_ProvideContextFactory.provideContext(singletonCImpl.applicationContextModule));
 
           case 2: // com.samcod3.alldebrid.data.repository.DeviceRepository 
-          return (T) new DeviceRepository(singletonCImpl.provideKodiApiProvider.get(), singletonCImpl.provideSettingsDataStoreProvider.get(), singletonCImpl.deviceDiscoveryManagerProvider.get());
+          return (T) new DeviceRepository(singletonCImpl.provideKodiApiProvider.get(), singletonCImpl.provideSettingsDataStoreProvider.get(), singletonCImpl.deviceDiscoveryManagerProvider.get(), singletonCImpl.dlnaQueueManagerProvider.get());
 
           case 3: // com.samcod3.alldebrid.data.api.KodiApi 
           return (T) AppModule_ProvideKodiApiFactory.provideKodiApi(singletonCImpl.provideGenericRetrofitProvider.get());
@@ -733,19 +737,22 @@ public final class DaggerAllDebridApp_HiltComponents_SingletonC {
           case 6: // com.samcod3.alldebrid.discovery.DeviceDiscoveryManager 
           return (T) new DeviceDiscoveryManager(ApplicationContextModule_ProvideContextFactory.provideContext(singletonCImpl.applicationContextModule), singletonCImpl.provideKodiApiProvider.get(), singletonCImpl.provideSettingsDataStoreProvider.get());
 
-          case 7: // com.samcod3.alldebrid.data.repository.AllDebridRepository 
+          case 7: // com.samcod3.alldebrid.data.repository.DlnaQueueManager 
+          return (T) new DlnaQueueManager();
+
+          case 8: // com.samcod3.alldebrid.data.repository.AllDebridRepository 
           return (T) new AllDebridRepository(singletonCImpl.provideAllDebridApiProvider.get(), singletonCImpl.provideSettingsDataStoreProvider.get());
 
-          case 8: // com.samcod3.alldebrid.data.api.AllDebridApi 
+          case 9: // com.samcod3.alldebrid.data.api.AllDebridApi 
           return (T) AppModule_ProvideAllDebridApiFactory.provideAllDebridApi(singletonCImpl.provideAllDebridRetrofitProvider.get());
 
-          case 9: // @com.samcod3.alldebrid.di.AllDebridRetrofit retrofit2.Retrofit 
+          case 10: // @com.samcod3.alldebrid.di.AllDebridRetrofit retrofit2.Retrofit 
           return (T) AppModule_ProvideAllDebridRetrofitFactory.provideAllDebridRetrofit(singletonCImpl.provideOkHttpClientProvider.get());
 
-          case 10: // com.samcod3.alldebrid.data.repository.JackettRepository 
+          case 11: // com.samcod3.alldebrid.data.repository.JackettRepository 
           return (T) new JackettRepository(singletonCImpl.provideJackettApiProvider.get(), singletonCImpl.provideSettingsDataStoreProvider.get());
 
-          case 11: // com.samcod3.alldebrid.data.api.JackettApi 
+          case 12: // com.samcod3.alldebrid.data.api.JackettApi 
           return (T) AppModule_ProvideJackettApiFactory.provideJackettApi(singletonCImpl.provideGenericRetrofitProvider.get());
 
           default: throw new AssertionError(id);

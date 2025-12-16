@@ -31,7 +31,8 @@ class DeviceRepository @Inject constructor(
     private val _devices = MutableStateFlow<List<Device>>(emptyList())
     
     init {
-        // Load cached devices on init
+        // Load cached devices on init - using GlobalScope is intentional for Singleton
+        @OptIn(kotlinx.coroutines.DelicateCoroutinesApi::class)
         GlobalScope.launch {
             val cachedDevices = settingsDataStore.getDiscoveredDevicesCache().first()
             if (cachedDevices.isNotEmpty()) {
