@@ -187,12 +187,35 @@ class DeviceDiscoveryManager @Inject constructor(
             }
             
             // Not Kodi, treat as DLNA device
-            val friendlyName = fetchDeviceFriendlyName(location) ?: extractDeviceName(server)
-            Log.d(TAG, "SSDP device at $address is DLNA: $friendlyName")
+            // Try to get friendlyName from SSDP location first, then try multiple endpoints
+            var friendlyName = fetchDeviceFriendlyName(location)
+            
+            if (friendlyName == null) {
+                // Try multiple endpoints like manual scan does
+                val endpoints = listOf(
+                    "http://$address:$port/dmr",
+                    "http://$address:$port/DeviceDescription.xml",
+                    "http://$address:$port/description.xml",
+                    "http://$address:$port/dmr/description.xml",
+                    "http://$address:$port/upnp/devicedesc.xml",
+                    "http://$address:$port/device.xml"
+                )
+                
+                for (endpoint in endpoints) {
+                    friendlyName = fetchDeviceFriendlyName(endpoint)
+                    if (friendlyName != null) {
+                        Log.d(TAG, "Found friendlyName '$friendlyName' at $endpoint")
+                        break
+                    }
+                }
+            }
+            
+            val deviceName = friendlyName ?: extractDeviceName(server)
+            Log.d(TAG, "SSDP device at $address is DLNA: $deviceName")
             
             Device(
                 id = UUID.randomUUID().toString(),
-                name = friendlyName,
+                name = deviceName,
                 address = address,
                 port = port,
                 type = DeviceType.DLNA,
