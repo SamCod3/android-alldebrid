@@ -29,6 +29,7 @@ import androidx.navigation.compose.rememberNavController
 import com.samcod3.alldebrid.R
 import com.samcod3.alldebrid.ui.screens.devices.DevicesScreen
 import com.samcod3.alldebrid.ui.screens.downloads.DownloadsScreen
+import com.samcod3.alldebrid.ui.screens.login.ApiKeyManagerScreen
 import com.samcod3.alldebrid.ui.screens.login.WebLoginScreen
 import com.samcod3.alldebrid.ui.screens.search.SearchScreen
 import com.samcod3.alldebrid.ui.screens.settings.SettingsScreen
@@ -68,8 +69,9 @@ sealed class Screen(
     )
 }
 
-// Route for WebLogin (not in bottom nav)
+// Routes for login/key management (not in bottom nav)
 const val WEB_LOGIN_ROUTE = "web_login"
+const val API_KEY_MANAGER_ROUTE = "api_key_manager"
 
 val bottomNavItems = listOf(
     Screen.Downloads,
@@ -78,14 +80,17 @@ val bottomNavItems = listOf(
     Screen.Settings
 )
 
+// Routes that should hide the bottom bar
+private val fullScreenRoutes = listOf(WEB_LOGIN_ROUTE, API_KEY_MANAGER_ROUTE)
+
 @Composable
 fun AllDebridNavHost() {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
     
-    // Determine if we should show the bottom bar (hide it on WebLogin screen)
-    val showBottomBar = currentDestination?.route != WEB_LOGIN_ROUTE
+    // Determine if we should show the bottom bar
+    val showBottomBar = currentDestination?.route !in fullScreenRoutes
 
     Scaffold(
         bottomBar = {
@@ -131,26 +136,30 @@ fun AllDebridNavHost() {
             composable(Screen.Devices.route) {
                 DevicesScreen()
             }
-            composable(Screen.Settings.route) { backStackEntry ->
-                // Observe the result from WebLogin screen
-                val extractedApiKey = backStackEntry
-                    .savedStateHandle
-                    .get<String>("extracted_api_key")
-                
+            composable(Screen.Settings.route) {
                 SettingsScreen(
-                    onNavigateToWebLogin = {
+                    onNavigateToApiKeyManager = {
+                        navController.navigate(API_KEY_MANAGER_ROUTE)
+                    }
+                )
+            }
+            composable(API_KEY_MANAGER_ROUTE) {
+                ApiKeyManagerScreen(
+                    onKeySelected = { _ ->
+                        // Key selected, can navigate back
+                    },
+                    onNavigateToLogin = {
                         navController.navigate(WEB_LOGIN_ROUTE)
                     },
-                    extractedApiKey = extractedApiKey
+                    onBack = {
+                        navController.popBackStack()
+                    }
                 )
             }
             composable(WEB_LOGIN_ROUTE) {
                 WebLoginScreen(
-                    onApiKeyExtracted = { apiKey ->
-                        // Set the result and navigate back
-                        navController.previousBackStackEntry
-                            ?.savedStateHandle
-                            ?.set("extracted_api_key", apiKey)
+                    onApiKeyExtracted = { _ ->
+                        // After login, go back to API key manager
                         navController.popBackStack()
                     },
                     onBack = {

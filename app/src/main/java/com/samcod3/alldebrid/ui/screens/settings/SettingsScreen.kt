@@ -52,29 +52,13 @@ import com.samcod3.alldebrid.R
 @Composable
 fun SettingsScreen(
     viewModel: SettingsViewModel = hiltViewModel(),
-    onNavigateToWebLogin: () -> Unit = {},
-    extractedApiKey: String? = null
+    onNavigateToApiKeyManager: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     
     var apiKeyVisible by remember { mutableStateOf(false) }
     var jackettKeyVisible by remember { mutableStateOf(false) }
-
-    // Handle extracted API key from WebLogin
-    LaunchedEffect(extractedApiKey) {
-        extractedApiKey?.let { key ->
-            if (key.isNotBlank() && !key.startsWith("ERROR") && key != "NO_KEYS_FOUND") {
-                viewModel.updateApiKey(key)
-                viewModel.saveApiKey()
-                viewModel.testConnection()
-            } else if (key == "NO_KEYS_FOUND") {
-                snackbarHostState.showSnackbar("No API keys found. Please create one on AllDebrid website.")
-            } else if (key.startsWith("ERROR")) {
-                snackbarHostState.showSnackbar("Error extracting key: ${key.removePrefix("ERROR:")}")
-            }
-        }
-    }
 
     LaunchedEffect(uiState.message) {
         uiState.message?.let {
@@ -139,14 +123,14 @@ fun SettingsScreen(
                         singleLine = true
                     )
                     
-                    // Auto-Login button
+                    // Manage API Keys button
                     Button(
-                        onClick = onNavigateToWebLogin,
+                        onClick = onNavigateToApiKeyManager,
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Icon(Icons.Default.Login, null)
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Login with AllDebrid")
+                        Text("Manage API Keys")
                     }
                     
                     Text(
