@@ -15,6 +15,7 @@ import javax.inject.Inject
 
 data class DevicesUiState(
     val isDiscovering: Boolean = false,
+    val isManualScanning: Boolean = false,
     val devices: List<Device> = emptyList(),
     val selectedDevice: Device? = null,
     val error: String? = null
@@ -60,6 +61,23 @@ class DevicesViewModel @Inject constructor(
                 }
                 .onFailure { error ->
                     _uiState.update { it.copy(isDiscovering = false, error = error.message) }
+                }
+        }
+    }
+    
+    /**
+     * Manual IP range scan - slower but finds devices that don't respond to SSDP
+     */
+    fun discoverManual() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isManualScanning = true, error = null) }
+            
+            deviceRepository.discoverDevicesManual()
+                .onSuccess { devices ->
+                    _uiState.update { it.copy(isManualScanning = false) }
+                }
+                .onFailure { error ->
+                    _uiState.update { it.copy(isManualScanning = false, error = error.message) }
                 }
         }
     }

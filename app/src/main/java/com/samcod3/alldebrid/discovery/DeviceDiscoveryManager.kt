@@ -41,30 +41,56 @@ class DeviceDiscoveryManager @Inject constructor(
         private val DLNA_PORTS = listOf(9197, 8060, 7676, 7678, 1234, 52235, 2869)
     }
     
+    /**
+     * Fast discovery using SSDP only.
+     * For each device found, checks if it's Kodi (responds to JSON-RPC ping).
+     * This is the default discovery method - fast (~3 seconds).
+     */
     suspend fun discoverAll(): List<Device> = coroutineScope {
-        val ssdpDevices = async { discoverSsdp() }
-        val manualDevices = async { discoverManual() }
+        val ssdpDevices = discoverSsdp()
         
         val allDevices = mutableListOf<Device>()
-        allDevices.addAll(ssdpDevices.await())
-        allDevices.addAll(manualDevices.await())
+        allDevices.addAll(ssdpDevices)
         
         // Add saved device if it exists and hasn't been found
         val savedDevice = settingsDataStore.selectedDevice.first()
         if (savedDevice != null) {
-            // Check if already found (by address and port)
             val alreadyFound = allDevices.any { 
                 it.address == savedDevice.address && it.port == savedDevice.port 
             }
             if (!alreadyFound) {
-                // If saved device is not in scan results, add it manually
-                // We assume it's valid since user selected it before
                 allDevices.add(savedDevice)
                 Log.d(TAG, "Added saved device to results: ${savedDevice.name}")
             }
         }
         
-        // Remove duplicates by address
+        allDevices.distinctBy { it.address }
+    }
+    
+    /**
+     * Slow manual discovery - scans all IPs in subnet.
+     * Use only when SSDP doesn't find devices.
+     * This is much slower (~30-60 seconds).
+     */
+    suspend fun discoverManualScan(): List<Device> = coroutineScope {
+        Log.d(TAG, "Starting manual IP scan...")
+        val manualDevices = discoverManual()
+        
+        val allDevices = mutableListOf<Device>()
+        allDevices.addAll(manualDevices)
+        
+        // Add saved device if not found
+        val savedDevice = settingsDataStore.selectedDevice.first()
+        if (savedDevice != null) {
+            val alreadyFound = allDevices.any { 
+                it.address == savedDevice.address && it.port == savedDevice.port 
+            }
+            if (!alreadyFound) {
+                allDevices.add(savedDevice)
+            }
+        }
+        
+        Log.d(TAG, "Manual scan completed, found ${allDevices.size} devices")
         allDevices.distinctBy { it.address }
     }
     
@@ -148,16 +174,27 @@ class DeviceDiscoveryManager @Inject constructor(
         
         val location = locationRegex.find(response)?.groupValues?.get(1)?.trim()
         val server = serverRegex.find(response)?.groupValues?.get(1)?.trim() ?: "Unknown Device"
+        val port = if (location != null) extractPort(location) else 80
         
         if (location != null) {
-            // Try to fetch friendlyName from device description
+            // First, check if this device is Kodi (try common Kodi ports)
+            val kodiDevice = checkIfKodi(address, KODI_DEFAULT_PORT) 
+                ?: checkIfKodi(address, port)
+            
+            if (kodiDevice != null) {
+                Log.d(TAG, "SSDP device at $address is Kodi: ${kodiDevice.name}")
+                return@withContext kodiDevice
+            }
+            
+            // Not Kodi, treat as DLNA device
             val friendlyName = fetchDeviceFriendlyName(location) ?: extractDeviceName(server)
+            Log.d(TAG, "SSDP device at $address is DLNA: $friendlyName")
             
             Device(
                 id = UUID.randomUUID().toString(),
                 name = friendlyName,
                 address = address,
-                port = extractPort(location),
+                port = port,
                 type = DeviceType.DLNA,
                 controlUrl = location
             )

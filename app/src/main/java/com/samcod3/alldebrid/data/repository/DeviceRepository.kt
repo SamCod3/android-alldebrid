@@ -57,6 +57,24 @@ class DeviceRepository @Inject constructor(
         }
     }
     
+    /**
+     * Manual discovery - slower but scans all IPs in subnet.
+     * Use when SSDP doesn't find devices.
+     */
+    suspend fun discoverDevicesManual(): Result<List<Device>> {
+        return try {
+            val devices = discoveryManager.discoverManualScan()
+            // Merge with existing devices (don't replace, add new ones)
+            val existing = _devices.value
+            val merged = (existing + devices).distinctBy { "${it.address}:${it.port}" }
+            _devices.value = merged
+            settingsDataStore.saveDiscoveredDevices(merged)
+            Result.success(merged)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+    
     suspend fun setSelectedDevice(device: Device) {
         settingsDataStore.saveSelectedDevice(device)
     }

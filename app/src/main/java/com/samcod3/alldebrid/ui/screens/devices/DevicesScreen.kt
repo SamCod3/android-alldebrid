@@ -95,14 +95,48 @@ fun DevicesScreen(
 
     Scaffold(
         floatingActionButton = {
-            FloatingActionButton(
-                onClick = { viewModel.discoverDevices() },
-                containerColor = MaterialTheme.colorScheme.primary
+            Column(
+                horizontalAlignment = Alignment.End,
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Icon(
-                    imageVector = Icons.Default.Search,
-                    contentDescription = stringResource(R.string.devices_discover)
-                )
+                // Manual scan button (smaller, secondary)
+                FloatingActionButton(
+                    onClick = { viewModel.discoverManual() },
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                    modifier = Modifier.height(48.dp)
+                ) {
+                    if (uiState.isManualScanning) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.height(24.dp),
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Text(
+                            text = "IP",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer
+                        )
+                    }
+                }
+                
+                // Main discover button (SSDP)
+                FloatingActionButton(
+                    onClick = { viewModel.discoverDevices() },
+                    containerColor = MaterialTheme.colorScheme.primary
+                ) {
+                    if (uiState.isDiscovering) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.height(24.dp),
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
+                    } else {
+                        Icon(
+                            imageVector = Icons.Default.Search,
+                            contentDescription = stringResource(R.string.devices_discover)
+                        )
+                    }
+                }
             }
         }
     ) { paddingValues ->
@@ -113,16 +147,41 @@ fun DevicesScreen(
         ) {
             when {
                 uiState.isDiscovering -> {
-                    CircularProgressIndicator(
-                        modifier = Modifier.align(Alignment.Center)
-                    )
+                    Column(
+                        modifier = Modifier.align(Alignment.Center),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        CircularProgressIndicator()
+                        Spacer(Modifier.height(8.dp))
+                        Text("Buscando dispositivos...", style = MaterialTheme.typography.bodyMedium)
+                    }
+                }
+                uiState.isManualScanning -> {
+                    Column(
+                        modifier = Modifier.align(Alignment.Center),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        CircularProgressIndicator()
+                        Spacer(Modifier.height(8.dp))
+                        Text("Escaneando red (lento)...", style = MaterialTheme.typography.bodyMedium)
+                    }
                 }
                 uiState.devices.isEmpty() -> {
-                    Text(
-                        text = stringResource(R.string.devices_empty),
+                    Column(
                         modifier = Modifier.align(Alignment.Center),
-                        style = MaterialTheme.typography.bodyLarge
-                    )
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = stringResource(R.string.devices_empty),
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            text = "Pulsa IP para escaneo manual",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
                 else -> {
                     LazyColumn(
