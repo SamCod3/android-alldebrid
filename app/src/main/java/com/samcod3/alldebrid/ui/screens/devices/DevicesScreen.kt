@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -72,14 +73,29 @@ fun DevicesScreen(
                 }
             },
             confirmButton = {
-                Button(
-                    onClick = {
-                        viewModel.renameDevice(device, newName.ifBlank { null })
-                        deviceToRename = null
-                        newName = ""
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    // Reset button - clears customName
+                    if (device.customName != null) {
+                        TextButton(
+                            onClick = {
+                                viewModel.renameDevice(device, null)
+                                deviceToRename = null
+                                newName = ""
+                            }
+                        ) {
+                            Text("Resetear")
+                        }
                     }
-                ) {
-                    Text("Save")
+                    // Save button
+                    Button(
+                        onClick = {
+                            viewModel.renameDevice(device, newName.ifBlank { null })
+                            deviceToRename = null
+                            newName = ""
+                        }
+                    ) {
+                        Text("Save")
+                    }
                 }
             },
             dismissButton = {
