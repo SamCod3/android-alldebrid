@@ -44,7 +44,9 @@ class SearchViewModel @Inject constructor(
             
             jackettRepository.search(_uiState.value.query)
                 .onSuccess { results ->
-                    _uiState.update { it.copy(isLoading = false, results = results) }
+                    // Sort by size descending (largest first)
+                    val sortedResults = results.sortedByDescending { it.size ?: 0 }
+                    _uiState.update { it.copy(isLoading = false, results = sortedResults) }
                 }
                 .onFailure { error ->
                     _uiState.update { it.copy(isLoading = false, error = error.message) }
