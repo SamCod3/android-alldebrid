@@ -362,6 +362,7 @@ fun DownloadsScreen(
                     }
                 }
             }
+            }
             
             // Casting Overlay/Toast
             uiState.castingMessage?.let { message ->
