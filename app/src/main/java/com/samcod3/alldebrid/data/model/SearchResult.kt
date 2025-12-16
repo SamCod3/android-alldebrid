@@ -31,7 +31,8 @@ data class SearchResult(
     val publishDate: String? = null,
     
     // Local state - not from API
-    val addedToDebrid: Boolean = false
+    val addedToDebrid: Boolean = false,
+    val failed: Boolean = false
 )
 
 data class JackettSearchResponse(

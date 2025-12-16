@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -30,10 +31,10 @@ fun SearchResultItem(
     Card(
         modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = if (result.addedToDebrid) {
-                MaterialTheme.colorScheme.primaryContainer
-            } else {
-                MaterialTheme.colorScheme.surfaceVariant
+            containerColor = when {
+                result.failed -> MaterialTheme.colorScheme.errorContainer
+                result.addedToDebrid -> MaterialTheme.colorScheme.primaryContainer
+                else -> MaterialTheme.colorScheme.surfaceVariant
             }
         )
     ) {
@@ -87,15 +88,19 @@ fun SearchResultItem(
             
             IconButton(
                 onClick = onAddToDebrid,
-                enabled = !result.addedToDebrid
+                enabled = !result.addedToDebrid && !result.failed
             ) {
                 Icon(
-                    imageVector = if (result.addedToDebrid) Icons.Default.Check else Icons.Default.Add,
+                    imageVector = when {
+                        result.failed -> Icons.Default.Close
+                        result.addedToDebrid -> Icons.Default.Check
+                        else -> Icons.Default.Add
+                    },
                     contentDescription = "Add to AllDebrid",
-                    tint = if (result.addedToDebrid) {
-                        MaterialTheme.colorScheme.primary
-                    } else {
-                        MaterialTheme.colorScheme.onSurface
+                    tint = when {
+                        result.failed -> MaterialTheme.colorScheme.error
+                        result.addedToDebrid -> MaterialTheme.colorScheme.primary
+                        else -> MaterialTheme.colorScheme.onSurface
                     }
                 )
             }

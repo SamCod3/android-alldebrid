@@ -81,7 +81,15 @@ class SearchViewModel @Inject constructor(
                     _uiState.update { it.copy(message = null) }
                 }
                 .onFailure { error ->
-                    _uiState.update { it.copy(message = null, error = error.message) }
+                    // Mark as failed in UI with red background
+                    _uiState.update { state ->
+                        state.copy(
+                            message = null,
+                            results = state.results.map {
+                                if (it == result) it.copy(failed = true) else it
+                            }
+                        )
+                    }
                 }
         }
     }

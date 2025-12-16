@@ -164,20 +164,30 @@ class DeviceDiscoveryManager @Inject constructor(
         } else null
     }
     
-    private suspend fun fetchDeviceFriendlyName(locationUrl: String): String? = withTimeoutOrNull(2000) {
+    private suspend fun fetchDeviceFriendlyName(locationUrl: String): String? = withTimeoutOrNull(3000) {
         try {
+            Log.d(TAG, "Fetching device description from: $locationUrl")
             val url = java.net.URL(locationUrl)
             val connection = url.openConnection() as java.net.HttpURLConnection
-            connection.connectTimeout = 1500
-            connection.readTimeout = 1500
+            connection.connectTimeout = 2000
+            connection.readTimeout = 2000
             val xml = connection.inputStream.bufferedReader().readText()
             connection.disconnect()
             
-            // Parse friendlyName from XML
-            val friendlyNameRegex = Regex("<friendlyName>(.+?)</friendlyName>")
-            friendlyNameRegex.find(xml)?.groupValues?.get(1)?.trim()
+            Log.d(TAG, "Device description XML length: ${xml.length} chars")
+            
+            // Parse friendlyName from XML (try multiple patterns)
+            val friendlyNameRegex = Regex("<friendlyName>(.+?)</friendlyName>", RegexOption.IGNORE_CASE)
+            val modelNameRegex = Regex("<modelName>(.+?)</modelName>", RegexOption.IGNORE_CASE)
+            
+            val friendlyName = friendlyNameRegex.find(xml)?.groupValues?.get(1)?.trim()
+            val modelName = modelNameRegex.find(xml)?.groupValues?.get(1)?.trim()
+            
+            val result = friendlyName ?: modelName
+            Log.d(TAG, "Parsed device name: $result (friendlyName=$friendlyName, modelName=$modelName)")
+            result
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to fetch device description from $locationUrl", e)
+            Log.e(TAG, "Failed to fetch device description from $locationUrl: ${e.message}")
             null
         }
     }
