@@ -283,16 +283,22 @@ class DeviceDiscoveryManager @Inject constructor(
                 
                 Log.d(TAG, "Found potential DLNA port $port open at $ip")
                 
-                // If TCP connects, we assume it's a DLNA-capable device for now,
-                // or we could try to fetch description.xml.
-                // For Samsung 9197, we found it.
+                // Try to get device description to find the friendly name
+                val descriptionUrl = "http://$ip:$port/description.xml"
+                val friendlyName = fetchDeviceFriendlyName(descriptionUrl) 
+                    ?: fetchDeviceFriendlyName("http://$ip:$port/dmr/description.xml")
+                    ?: fetchDeviceFriendlyName("http://$ip:$port/DeviceDescription.xml")
+                
+                val deviceName = friendlyName ?: "DLNA ($ip)"
+                Log.d(TAG, "DLNA device name resolved to: $deviceName")
+                
                 return@withContext Device(
                     id = UUID.randomUUID().toString(),
-                    name = "DLNA Device ($ip:$port)",
+                    name = deviceName,
                     address = ip,
                     port = port,
                     type = DeviceType.DLNA,
-                    controlUrl = "http://$ip:$port/" // Basic URL, casting logic might need to probe better
+                    controlUrl = "http://$ip:$port/"
                 )
             } catch (e: Exception) {
                 // Ignore connection failure
