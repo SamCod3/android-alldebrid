@@ -11,6 +11,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -39,79 +41,92 @@ fun SearchScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.nav_search)) },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                )
-            )
-        }
-    ) { paddingValues ->
-        Column(
+    Scaffold { paddingValues ->
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            // Search bar
-            OutlinedTextField(
-                value = uiState.query,
-                onValueChange = { viewModel.updateQuery(it) },
-                placeholder = { Text(stringResource(R.string.search_hint)) },
-                trailingIcon = {
-                    IconButton(
-                        onClick = { viewModel.search() },
-                        enabled = uiState.query.isNotBlank()
-                    ) {
-                        Icon(Icons.Default.Search, contentDescription = null)
-                    }
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                singleLine = true
-            )
-            
-            Box(
+            Column(
                 modifier = Modifier.fillMaxSize()
             ) {
-                when {
-                    uiState.isLoading -> {
-                        CircularProgressIndicator(
-                            modifier = Modifier.align(Alignment.Center)
-                        )
-                    }
-                    uiState.error != null -> {
-                        Text(
-                            text = uiState.error ?: "",
-                            color = MaterialTheme.colorScheme.error,
-                            modifier = Modifier.align(Alignment.Center)
-                        )
-                    }
-                    uiState.results.isEmpty() && uiState.hasSearched -> {
-                        Text(
-                            text = stringResource(R.string.search_empty),
-                            modifier = Modifier.align(Alignment.Center),
-                            style = MaterialTheme.typography.bodyLarge
-                        )
-                    }
-                    else -> {
-                        LazyColumn(
-                            contentPadding = PaddingValues(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                // Search bar
+                OutlinedTextField(
+                    value = uiState.query,
+                    onValueChange = { viewModel.updateQuery(it) },
+                    placeholder = { Text(stringResource(R.string.search_hint)) },
+                    trailingIcon = {
+                        IconButton(
+                            onClick = { viewModel.search() },
+                            enabled = uiState.query.isNotBlank()
                         ) {
-                            items(uiState.results) { result ->
-                                SearchResultItem(
-                                    result = result,
-                                    onAddToDebrid = { viewModel.addToDebrid(result) }
-                                )
+                            Icon(Icons.Default.Search, contentDescription = null)
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    singleLine = true
+                )
+                
+                Box(
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    when {
+                        uiState.isLoading -> {
+                            CircularProgressIndicator(
+                                modifier = Modifier.align(Alignment.Center)
+                            )
+                        }
+                        uiState.error != null -> {
+                            Text(
+                                text = uiState.error ?: "",
+                                color = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.align(Alignment.Center)
+                            )
+                        }
+                        uiState.results.isEmpty() && uiState.hasSearched -> {
+                            Text(
+                                text = stringResource(R.string.search_empty),
+                                modifier = Modifier.align(Alignment.Center),
+                                style = MaterialTheme.typography.bodyLarge
+                            )
+                        }
+                        else -> {
+                            LazyColumn(
+                                contentPadding = PaddingValues(16.dp),
+                                verticalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                items(uiState.results) { result ->
+                                    SearchResultItem(
+                                        result = result,
+                                        onAddToDebrid = { viewModel.addToDebrid(result) }
+                                    )
+                                }
                             }
                         }
                     }
                 }
             }
+            
+            // Message toast
+            uiState.message?.let { message ->
+                Card(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(16.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer
+                    )
+                ) {
+                    Text(
+                        text = message,
+                        modifier = Modifier.padding(16.dp),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+            }
         }
     }
 }
+

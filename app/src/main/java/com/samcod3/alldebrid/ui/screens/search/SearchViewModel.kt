@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 import javax.inject.Inject
 
 data class SearchUiState(
@@ -18,7 +19,8 @@ data class SearchUiState(
     val isLoading: Boolean = false,
     val results: List<SearchResult> = emptyList(),
     val error: String? = null,
-    val hasSearched: Boolean = false
+    val hasSearched: Boolean = false,
+    val message: String? = null
 )
 
 @HiltViewModel
@@ -52,22 +54,38 @@ class SearchViewModel @Inject constructor(
 
     fun addToDebrid(result: SearchResult) {
         viewModelScope.launch {
-            val magnetLink = result.magnetUri ?: result.link ?: return@launch
+            val magnetLink = result.magnetUri ?: result.link
+            
+            if (magnetLink == null) {
+                _uiState.update { it.copy(error = "No magnet or link available") }
+                return@launch
+            }
+            
+            _uiState.update { it.copy(message = "Adding...") }
             
             allDebridRepository.uploadMagnet(magnetLink)
                 .onSuccess {
                     // Mark as added in UI
                     _uiState.update { state ->
                         state.copy(
+                            message = "Added!",
                             results = state.results.map {
                                 if (it == result) it.copy(addedToDebrid = true) else it
                             }
                         )
                     }
+                    // Clear message after delay
+                    delay(2000)
+                    _uiState.update { it.copy(message = null) }
                 }
                 .onFailure { error ->
-                    _uiState.update { it.copy(error = error.message) }
+                    _uiState.update { it.copy(message = null, error = error.message) }
                 }
         }
     }
+    
+    fun clearError() {
+        _uiState.update { it.copy(error = null) }
+    }
 }
+

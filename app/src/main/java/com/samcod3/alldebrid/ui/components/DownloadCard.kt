@@ -172,7 +172,7 @@ fun DownloadCard(
                                     link = link,
                                     onLongPress = { 
                                         onCopyLink(link.link)
-                                        showBottomSheet = false
+                                        // Don't close sheet - user can close manually
                                     }
                                 )
                             }

@@ -1,5 +1,7 @@
 package com.samcod3.alldebrid.ui.navigation
 
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Devices
@@ -10,11 +12,15 @@ import androidx.compose.material.icons.outlined.Devices
 import androidx.compose.material.icons.outlined.Download
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -82,33 +88,36 @@ val bottomNavItems = listOf(
     Screen.Settings
 )
 
-// Routes that should hide the bottom bar
-private val fullScreenRoutes = listOf(WEB_LOGIN_ROUTE, API_KEY_MANAGER_ROUTE)
+// Routes that should hide the top bar
+private val fullScreenRoutes = listOf(WEB_LOGIN_ROUTE, API_KEY_MANAGER_ROUTE, IP_AUTHORIZATION_ROUTE)
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AllDebridNavHost() {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
     
-    // Determine if we should show the bottom bar
-    val showBottomBar = currentDestination?.route !in fullScreenRoutes
+    // Determine if we should show the top bar
+    val showTopBar = currentDestination?.route !in fullScreenRoutes
+    
+    // Get selected tab index
+    val selectedTabIndex = bottomNavItems.indexOfFirst { screen ->
+        currentDestination?.hierarchy?.any { it.route == screen.route } == true
+    }.takeIf { it >= 0 } ?: 0
 
     Scaffold(
-        bottomBar = {
-            if (showBottomBar) {
-                NavigationBar {
-                    bottomNavItems.forEach { screen ->
-                        val selected = currentDestination?.hierarchy?.any { it.route == screen.route } == true
-                        NavigationBarItem(
-                            icon = {
-                                Icon(
-                                    imageVector = if (selected) screen.selectedIcon else screen.unselectedIcon,
-                                    contentDescription = stringResource(screen.titleResId)
-                                )
-                            },
-                            label = { Text(stringResource(screen.titleResId)) },
-                            selected = selected,
+        topBar = {
+            if (showTopBar) {
+                TabRow(
+                    selectedTabIndex = selectedTabIndex,
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    bottomNavItems.forEachIndexed { index, screen ->
+                        Tab(
+                            selected = selectedTabIndex == index,
                             onClick = {
                                 navController.navigate(screen.route) {
                                     popUpTo(navController.graph.findStartDestination().id) {
@@ -117,6 +126,18 @@ fun AllDebridNavHost() {
                                     launchSingleTop = true
                                     restoreState = true
                                 }
+                            },
+                            text = { 
+                                Text(
+                                    stringResource(screen.titleResId),
+                                    style = MaterialTheme.typography.labelSmall
+                                ) 
+                            },
+                            icon = {
+                                Icon(
+                                    imageVector = if (selectedTabIndex == index) screen.selectedIcon else screen.unselectedIcon,
+                                    contentDescription = null
+                                )
                             }
                         )
                     }
@@ -195,3 +216,4 @@ fun AllDebridNavHost() {
         }
     }
 }
+

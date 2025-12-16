@@ -191,7 +191,7 @@ fun DownloadsScreen(
                                 )
                                 Spacer(Modifier.width(8.dp))
                                 Column {
-                                    Text(device.name, style = MaterialTheme.typography.bodyMedium)
+                                    Text(device.displayName, style = MaterialTheme.typography.bodyMedium)
                                     Text(
                                         "${device.type.name} • ${device.address}",
                                         style = MaterialTheme.typography.bodySmall,
@@ -254,48 +254,6 @@ fun DownloadsScreen(
     }
 
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { 
-                    Text(stringResource(R.string.nav_downloads))
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                ),
-                actions = {
-                    // Show device name if selected
-                    uiState.selectedDevice?.let { device ->
-                        Text(
-                            text = device.displayName.take(12) + if (device.displayName.length > 12) "…" else "",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    }
-                    // Cast icon with device selector
-                    IconButton(
-                        onClick = { 
-                            if (uiState.discoveredDevices.isEmpty()) {
-                                // No devices - navigate to Devices tab and scan
-                                onNavigateToDevices()
-                            } else {
-                                showDeviceSelector = true
-                            }
-                        }
-                    ) {
-                        Icon(
-                            imageVector = if (uiState.selectedDevice != null) 
-                                Icons.Default.CastConnected else Icons.Default.Cast,
-                            contentDescription = "Cast",
-                            tint = if (uiState.selectedDevice != null)
-                                MaterialTheme.colorScheme.primary
-                            else
-                                MaterialTheme.colorScheme.onPrimaryContainer
-                        )
-                    }
-                }
-            )
-        },
         floatingActionButton = {
             FloatingActionButton(
                 onClick = { viewModel.refresh() },
@@ -308,11 +266,56 @@ fun DownloadsScreen(
             }
         }
     ) { paddingValues ->
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
+            // Cast device row
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Show device name if selected
+                uiState.selectedDevice?.let { device ->
+                    Text(
+                        text = "📺 ${device.displayName}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                } ?: Text(
+                    text = "No device",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                
+                // Cast icon with device selector
+                IconButton(
+                    onClick = { 
+                        if (uiState.discoveredDevices.isEmpty()) {
+                            onNavigateToDevices()
+                        } else {
+                            showDeviceSelector = true
+                        }
+                    }
+                ) {
+                    Icon(
+                        imageVector = if (uiState.selectedDevice != null) 
+                            Icons.Default.CastConnected else Icons.Default.Cast,
+                        contentDescription = "Cast",
+                        tint = if (uiState.selectedDevice != null)
+                            MaterialTheme.colorScheme.primary
+                        else
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+            
+            // Content
+            Box(modifier = Modifier.fillMaxSize()) {
             when {
                 uiState.isLoading -> {
                     CircularProgressIndicator(
@@ -364,7 +367,6 @@ fun DownloadsScreen(
             uiState.castingMessage?.let { message ->
                 Card(
                     modifier = Modifier
-                        .align(Alignment.BottomCenter)
                         .padding(16.dp)
                         .fillMaxWidth(),
                     colors = CardDefaults.cardColors(
