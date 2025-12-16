@@ -55,6 +55,7 @@ fun DownloadCard(
     magnet: Magnet,
     onDelete: () -> Unit,
     onUnlock: (String) -> Unit,
+    onPlay: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     var expanded by remember { mutableStateOf(false) }
@@ -173,7 +174,7 @@ fun DownloadCard(
                         mediaLinks.forEach { link ->
                             LinkItem(
                                 link = link,
-                                onUnlock = { onUnlock(link.link) },
+                                onClick = { onPlay(link.link) },
                                 isMedia = true
                             )
                         }
@@ -211,7 +212,7 @@ fun DownloadCard(
                             otherLinks.forEach { link ->
                                 LinkItem(
                                     link = link,
-                                    onUnlock = { onUnlock(link.link) },
+                                    onClick = { onUnlock(link.link) },
                                     isMedia = false
                                 )
                             }
@@ -226,7 +227,7 @@ fun DownloadCard(
 @Composable
 private fun LinkItem(
     link: MagnetLink,
-    onUnlock: () -> Unit,
+    onClick: () -> Unit,
     isMedia: Boolean
 ) {
     Row(
@@ -234,7 +235,7 @@ private fun LinkItem(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
-            imageVector = Icons.Default.PlayArrow,
+            imageVector = if (isMedia) Icons.Default.PlayArrow else Icons.Default.InsertDriveFile,
             contentDescription = null,
             modifier = Modifier.size(16.dp),
             tint = if (isMedia) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
@@ -248,8 +249,14 @@ private fun LinkItem(
             overflow = TextOverflow.Ellipsis,
             color = if (isMedia) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
         )
-        TextButton(onClick = onUnlock) {
-            Text("Unlock")
+        TextButton(onClick = onClick) {
+            if (isMedia) {
+                Icon(Icons.Default.PlayArrow, null, modifier = Modifier.size(18.dp))
+                Spacer(modifier = Modifier.width(4.dp))
+                Text("Play")
+            } else {
+                Text("Unlock")
+            }
         }
     }
 }

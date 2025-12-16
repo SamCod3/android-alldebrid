@@ -35,10 +35,12 @@ import com.samcod3.alldebrid.R
 import com.samcod3.alldebrid.ui.components.DownloadCard
 
 @OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DownloadsScreen(
     viewModel: DownloadsViewModel = hiltViewModel(),
-    onNavigateToIpAuth: () -> Unit = {}
+    onNavigateToIpAuth: () -> Unit = {},
+    onNavigateToDevices: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
@@ -66,6 +68,28 @@ fun DownloadsScreen(
             }
         )
     }
+    
+    // Show Device Selection Required dialog
+    if (uiState.error?.contains("No device selected") == true) {
+        AlertDialog(
+            onDismissRequest = { viewModel.clearMessage() },
+            title = { Text("No Device Selected") },
+            text = { Text("Please select a device to cast media to.") },
+            confirmButton = {
+                Button(onClick = {
+                    viewModel.clearMessage()
+                    onNavigateToDevices()
+                }) {
+                    Text("Select Device")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.clearMessage() }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
 
     Scaffold(
         topBar = {
@@ -74,7 +98,18 @@ fun DownloadsScreen(
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer,
                     titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                )
+                ),
+                actions = {
+                    // Show selected device in TopBar if any
+                    uiState.selectedDevice?.let { device ->
+                        Text(
+                            text = "casting to: ${device.name}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                            modifier = Modifier.padding(end = 16.dp)
+                        )
+                    }
+                }
             )
         },
         floatingActionButton = {
@@ -100,7 +135,9 @@ fun DownloadsScreen(
                         modifier = Modifier.align(Alignment.Center)
                     )
                 }
-                uiState.error != null && !uiState.requiresIpAuthorization -> {
+                uiState.error != null && 
+                !uiState.requiresIpAuthorization && 
+                !uiState.error!!.contains("No device selected") -> {
                     Column(
                         modifier = Modifier.align(Alignment.Center),
                         horizontalAlignment = Alignment.CenterHorizontally,
@@ -128,10 +165,31 @@ fun DownloadsScreen(
                             DownloadCard(
                                 magnet = magnet,
                                 onDelete = { viewModel.deleteMagnet(magnet.id) },
-                                onUnlock = { link -> viewModel.unlockLink(link) }
+                                onUnlock = { link -> viewModel.unlockAndCopy(link) },
+                                onPlay = { link -> viewModel.playLink(link) }
                             )
                         }
                     }
+                }
+            }
+            
+            // Casting Overlay/Toast
+            uiState.castingMessage?.let { message ->
+                Card(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(16.dp)
+                        .fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.inverseSurface
+                    )
+                ) {
+                    Text(
+                        text = message,
+                        color = MaterialTheme.colorScheme.inverseOnSurface,
+                        modifier = Modifier.padding(16.dp),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
                 }
             }
         }

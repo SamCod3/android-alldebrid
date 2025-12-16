@@ -8,6 +8,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -15,6 +16,7 @@ import javax.inject.Inject
 data class DevicesUiState(
     val isDiscovering: Boolean = false,
     val devices: List<Device> = emptyList(),
+    val selectedDevice: Device? = null,
     val error: String? = null
 )
 
@@ -27,13 +29,23 @@ class DevicesViewModel @Inject constructor(
     val uiState: StateFlow<DevicesUiState> = _uiState.asStateFlow()
 
     init {
-        loadSavedDevices()
+        observeData()
     }
 
-    private fun loadSavedDevices() {
+    private fun observeData() {
         viewModelScope.launch {
-            deviceRepository.getSavedDevices().collect { devices ->
-                _uiState.update { it.copy(devices = devices) }
+            combine(
+                deviceRepository.getDiscoveredDevices(),
+                deviceRepository.getSelectedDevice()
+            ) { devices, selectedDevice ->
+                Pair(devices, selectedDevice)
+            }.collect { (devices, selectedDevice) ->
+                _uiState.update { 
+                    it.copy(
+                        devices = devices,
+                        selectedDevice = selectedDevice
+                    ) 
+                }
             }
         }
     }
@@ -44,7 +56,7 @@ class DevicesViewModel @Inject constructor(
             
             deviceRepository.discoverDevices()
                 .onSuccess { devices ->
-                    _uiState.update { it.copy(isDiscovering = false, devices = devices) }
+                    _uiState.update { it.copy(isDiscovering = false) }
                 }
                 .onFailure { error ->
                     _uiState.update { it.copy(isDiscovering = false, error = error.message) }

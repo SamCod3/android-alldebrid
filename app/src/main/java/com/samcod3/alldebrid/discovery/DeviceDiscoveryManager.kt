@@ -49,6 +49,21 @@ class DeviceDiscoveryManager @Inject constructor(
         allDevices.addAll(ssdpDevices.await())
         allDevices.addAll(manualDevices.await())
         
+        // Add saved device if it exists and hasn't been found
+        val savedDevice = settingsDataStore.selectedDevice.first()
+        if (savedDevice != null) {
+            // Check if already found (by address and port)
+            val alreadyFound = allDevices.any { 
+                it.address == savedDevice.address && it.port == savedDevice.port 
+            }
+            if (!alreadyFound) {
+                // If saved device is not in scan results, add it manually
+                // We assume it's valid since user selected it before
+                allDevices.add(savedDevice)
+                Log.d(TAG, "Added saved device to results: ${savedDevice.name}")
+            }
+        }
+        
         // Remove duplicates by address
         allDevices.distinctBy { it.address }
     }

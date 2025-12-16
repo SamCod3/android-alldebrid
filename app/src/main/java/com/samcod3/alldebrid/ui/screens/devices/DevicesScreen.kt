@@ -82,9 +82,14 @@ fun DevicesScreen(
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         items(uiState.devices) { device ->
+                            val isSelected = uiState.selectedDevice?.id == device.id ||
+                                    (uiState.selectedDevice?.address == device.address && 
+                                     uiState.selectedDevice?.port == device.port)
+                                     
                             DeviceItem(
                                 device = device,
-                                onClick = { /* TODO: Select device */ }
+                                isSelected = isSelected,
+                                onClick = { viewModel.selectDevice(device) }
                             )
                         }
                     }

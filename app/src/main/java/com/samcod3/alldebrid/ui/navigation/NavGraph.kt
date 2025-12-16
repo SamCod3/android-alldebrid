@@ -133,6 +133,15 @@ fun AllDebridNavHost() {
                 DownloadsScreen(
                     onNavigateToIpAuth = {
                         navController.navigate(IP_AUTHORIZATION_ROUTE)
+                    },
+                    onNavigateToDevices = {
+                        navController.navigate(Screen.Devices.route) {
+                            popUpTo(navController.graph.findStartDestination().id) {
+                                saveState = true
+                            }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
                     }
                 )
             }
