@@ -29,6 +29,7 @@ import androidx.navigation.compose.rememberNavController
 import com.samcod3.alldebrid.R
 import com.samcod3.alldebrid.ui.screens.devices.DevicesScreen
 import com.samcod3.alldebrid.ui.screens.downloads.DownloadsScreen
+import com.samcod3.alldebrid.ui.screens.login.WebLoginScreen
 import com.samcod3.alldebrid.ui.screens.search.SearchScreen
 import com.samcod3.alldebrid.ui.screens.settings.SettingsScreen
 
@@ -67,6 +68,9 @@ sealed class Screen(
     )
 }
 
+// Route for WebLogin (not in bottom nav)
+const val WEB_LOGIN_ROUTE = "web_login"
+
 val bottomNavItems = listOf(
     Screen.Downloads,
     Screen.Search,
@@ -79,31 +83,36 @@ fun AllDebridNavHost() {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
+    
+    // Determine if we should show the bottom bar (hide it on WebLogin screen)
+    val showBottomBar = currentDestination?.route != WEB_LOGIN_ROUTE
 
     Scaffold(
         bottomBar = {
-            NavigationBar {
-                bottomNavItems.forEach { screen ->
-                    val selected = currentDestination?.hierarchy?.any { it.route == screen.route } == true
-                    NavigationBarItem(
-                        icon = {
-                            Icon(
-                                imageVector = if (selected) screen.selectedIcon else screen.unselectedIcon,
-                                contentDescription = stringResource(screen.titleResId)
-                            )
-                        },
-                        label = { Text(stringResource(screen.titleResId)) },
-                        selected = selected,
-                        onClick = {
-                            navController.navigate(screen.route) {
-                                popUpTo(navController.graph.findStartDestination().id) {
-                                    saveState = true
+            if (showBottomBar) {
+                NavigationBar {
+                    bottomNavItems.forEach { screen ->
+                        val selected = currentDestination?.hierarchy?.any { it.route == screen.route } == true
+                        NavigationBarItem(
+                            icon = {
+                                Icon(
+                                    imageVector = if (selected) screen.selectedIcon else screen.unselectedIcon,
+                                    contentDescription = stringResource(screen.titleResId)
+                                )
+                            },
+                            label = { Text(stringResource(screen.titleResId)) },
+                            selected = selected,
+                            onClick = {
+                                navController.navigate(screen.route) {
+                                    popUpTo(navController.graph.findStartDestination().id) {
+                                        saveState = true
+                                    }
+                                    launchSingleTop = true
+                                    restoreState = true
                                 }
-                                launchSingleTop = true
-                                restoreState = true
                             }
-                        }
-                    )
+                        )
+                    }
                 }
             }
         }
@@ -122,8 +131,32 @@ fun AllDebridNavHost() {
             composable(Screen.Devices.route) {
                 DevicesScreen()
             }
-            composable(Screen.Settings.route) {
-                SettingsScreen()
+            composable(Screen.Settings.route) { backStackEntry ->
+                // Observe the result from WebLogin screen
+                val extractedApiKey = backStackEntry
+                    .savedStateHandle
+                    .get<String>("extracted_api_key")
+                
+                SettingsScreen(
+                    onNavigateToWebLogin = {
+                        navController.navigate(WEB_LOGIN_ROUTE)
+                    },
+                    extractedApiKey = extractedApiKey
+                )
+            }
+            composable(WEB_LOGIN_ROUTE) {
+                WebLoginScreen(
+                    onApiKeyExtracted = { apiKey ->
+                        // Set the result and navigate back
+                        navController.previousBackStackEntry
+                            ?.savedStateHandle
+                            ?.set("extracted_api_key", apiKey)
+                        navController.popBackStack()
+                    },
+                    onBack = {
+                        navController.popBackStack()
+                    }
+                )
             }
         }
     }

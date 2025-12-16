@@ -8,11 +8,13 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Login
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Button
@@ -49,13 +51,30 @@ import com.samcod3.alldebrid.R
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
-    viewModel: SettingsViewModel = hiltViewModel()
+    viewModel: SettingsViewModel = hiltViewModel(),
+    onNavigateToWebLogin: () -> Unit = {},
+    extractedApiKey: String? = null
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     
     var apiKeyVisible by remember { mutableStateOf(false) }
     var jackettKeyVisible by remember { mutableStateOf(false) }
+
+    // Handle extracted API key from WebLogin
+    LaunchedEffect(extractedApiKey) {
+        extractedApiKey?.let { key ->
+            if (key.isNotBlank() && !key.startsWith("ERROR") && key != "NO_KEYS_FOUND") {
+                viewModel.updateApiKey(key)
+                viewModel.saveApiKey()
+                viewModel.testConnection()
+            } else if (key == "NO_KEYS_FOUND") {
+                snackbarHostState.showSnackbar("No API keys found. Please create one on AllDebrid website.")
+            } else if (key.startsWith("ERROR")) {
+                snackbarHostState.showSnackbar("Error extracting key: ${key.removePrefix("ERROR:")}")
+            }
+        }
+    }
 
     LaunchedEffect(uiState.message) {
         uiState.message?.let {
@@ -118,6 +137,22 @@ fun SettingsScreen(
                         },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true
+                    )
+                    
+                    // Auto-Login button
+                    Button(
+                        onClick = onNavigateToWebLogin,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(Icons.Default.Login, null)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Login with AllDebrid")
+                    }
+                    
+                    Text(
+                        text = "Or enter API key manually:",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     
                     Row(
