@@ -8,11 +8,15 @@
     <string msgid="6107532579223922871" name="call_notification_incoming_text">"Llamada entrante"</string>
     <string msgid="8623827134497363134" name="call_notification_ongoing_text">"Llamada en curso"</string>
     <string msgid="59049573811482460" name="call_notification_screening_text">"Filtrando una llamada entrante"</string>
+    <string name="cancel">Cancelar</string>
     <string name="cast_to">Enviar a…</string>
     <string msgid="406453423630273620" name="close_drawer">"Cerrar menú de navegación"</string>
     <string msgid="7573152094250666567" name="close_sheet">"Cerrar hoja"</string>
     <string msgid="8038256446254964252" name="default_error_message">"Entrada no válida"</string>
     <string msgid="6312721426453364202" name="default_popup_window_title">"Ventana emergente"</string>
+    <string name="device_selector_discover">Buscar</string>
+    <string name="device_selector_empty">No hay dispositivos. Toca \'Buscar\' para escanear.</string>
+    <string name="device_selector_title">Seleccionar Dispositivo</string>
     <string name="devices_discover">Buscar Dispositivos</string>
     <string name="devices_dlna">DLNA</string>
     <string name="devices_empty">No hay dispositivos</string>

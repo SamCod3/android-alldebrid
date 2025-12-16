@@ -5,7 +5,11 @@ drawable ic_launcher_foreground
 mipmap ic_launcher
 mipmap ic_launcher_round
 string app_name
+string cancel
 string cast_to
+string device_selector_discover
+string device_selector_empty
+string device_selector_title
 string devices_discover
 string devices_dlna
 string devices_empty

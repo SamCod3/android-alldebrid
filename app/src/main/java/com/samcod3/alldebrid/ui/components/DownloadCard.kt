@@ -62,7 +62,7 @@ fun DownloadCard(
     magnet: Magnet,
     onDelete: () -> Unit,
     onUnlock: (String) -> Unit,
-    onPlay: (String) -> Unit,
+    onPlay: (link: String, title: String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     var showBottomSheet by remember { mutableStateOf(false) }
@@ -125,7 +125,7 @@ fun DownloadCard(
                             LinkItem(
                                 link = link,
                                 onClick = { 
-                                    onPlay(link.link)
+                                    onPlay(link.link, link.filename)
                                     showBottomSheet = false
                                 },
                                 isMedia = true

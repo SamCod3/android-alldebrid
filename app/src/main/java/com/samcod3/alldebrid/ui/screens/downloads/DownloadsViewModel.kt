@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.Job
+import com.samcod3.alldebrid.data.repository.DlnaQueueItem
 import javax.inject.Inject
 
 data class DownloadsUiState(
@@ -27,7 +28,10 @@ data class DownloadsUiState(
     val discoveredDevices: List<Device> = emptyList(),
     val castingMessage: String? = null,
     val showKodiQueueDialog: Boolean = false,
-    val pendingCastLink: String? = null
+    val showDlnaQueueDialog: Boolean = false,
+    val pendingCastLink: String? = null,
+    val pendingCastTitle: String? = null,
+    val dlnaQueue: List<DlnaQueueItem> = emptyList()
 )
 
 @HiltViewModel
@@ -44,6 +48,7 @@ class DownloadsViewModel @Inject constructor(
     init {
         observeSelectedDevice()
         observeDiscoveredDevices()
+        observeDlnaQueue()
         refresh()
     }
     
@@ -59,6 +64,14 @@ class DownloadsViewModel @Inject constructor(
         viewModelScope.launch {
             deviceRepository.getDiscoveredDevices().collect { devices ->
                 _uiState.update { it.copy(discoveredDevices = devices) }
+            }
+        }
+    }
+    
+    private fun observeDlnaQueue() {
+        viewModelScope.launch {
+            deviceRepository.dlnaQueue.queue.collect { queue ->
+                _uiState.update { it.copy(dlnaQueue = queue) }
             }
         }
     }
@@ -92,7 +105,7 @@ class DownloadsViewModel @Inject constructor(
         }
     }
 
-    fun playLink(link: String) {
+    fun playLink(link: String, title: String = "Video") {
         val device = _uiState.value.selectedDevice
         if (device != null) {
             // Check if it's Kodi and if something is playing
@@ -105,22 +118,34 @@ class DownloadsViewModel @Inject constructor(
                                 _uiState.update { 
                                     it.copy(
                                         showKodiQueueDialog = true,
-                                        pendingCastLink = link
+                                        pendingCastLink = link,
+                                        pendingCastTitle = title
                                     ) 
                                 }
                             } else {
                                 // Not playing, just cast
-                                castLink(link, device, addToQueue = false)
+                                castLink(link, device, addToQueue = false, title = title)
                             }
                         }
                         .onFailure {
                             // If check fails, just cast
-                            castLink(link, device, addToQueue = false)
+                            castLink(link, device, addToQueue = false, title = title)
                         }
                 }
-            } else {
-                // DLNA: just cast directly
-                castLink(link, device, addToQueue = false)
+            } else if (device.type == com.samcod3.alldebrid.data.model.DeviceType.DLNA) {
+                // DLNA: Check if queue has items - offer to add to queue
+                if (deviceRepository.dlnaQueue.queueSize() > 0) {
+                    _uiState.update {
+                        it.copy(
+                            showDlnaQueueDialog = true,
+                            pendingCastLink = link,
+                            pendingCastTitle = title
+                        )
+                    }
+                } else {
+                    // Queue is empty, play directly
+                    castLink(link, device, addToQueue = false, title = title)
+                }
             }
         } else {
             _uiState.update { it.copy(error = "No device selected. Please select a device in Devices tab.") }
@@ -128,28 +153,61 @@ class DownloadsViewModel @Inject constructor(
     }
     
     fun dismissKodiQueueDialog() {
-        _uiState.update { it.copy(showKodiQueueDialog = false, pendingCastLink = null) }
+        _uiState.update { it.copy(showKodiQueueDialog = false, pendingCastLink = null, pendingCastTitle = null) }
+    }
+    
+    fun dismissDlnaQueueDialog() {
+        _uiState.update { it.copy(showDlnaQueueDialog = false, pendingCastLink = null, pendingCastTitle = null) }
     }
     
     fun playNow() {
         val link = _uiState.value.pendingCastLink
+        val title = _uiState.value.pendingCastTitle ?: "Video"
         val device = _uiState.value.selectedDevice
         if (link != null && device != null) {
             dismissKodiQueueDialog()
-            castLink(link, device, addToQueue = false)
+            dismissDlnaQueueDialog()
+            castLink(link, device, addToQueue = false, title = title)
         }
     }
     
     fun addToQueue() {
         val link = _uiState.value.pendingCastLink
+        val title = _uiState.value.pendingCastTitle ?: "Video"
         val device = _uiState.value.selectedDevice
         if (link != null && device != null) {
             dismissKodiQueueDialog()
-            castLink(link, device, addToQueue = true)
+            dismissDlnaQueueDialog()
+            castLink(link, device, addToQueue = true, title = title)
         }
     }
     
-    private fun castLink(link: String, device: Device, addToQueue: Boolean) {
+    fun playNextInDlnaQueue() {
+        val device = _uiState.value.selectedDevice
+        if (device != null && device.type == com.samcod3.alldebrid.data.model.DeviceType.DLNA) {
+            viewModelScope.launch {
+                _uiState.update { it.copy(castingMessage = "Playing next...") }
+                deviceRepository.playNextInDlnaQueue(device)
+                    .onSuccess {
+                        _uiState.update { it.copy(castingMessage = "Playing next!", error = null) }
+                        scheduleMessageClear()
+                    }
+                    .onFailure { error ->
+                        _uiState.update { it.copy(castingMessage = null, error = "Queue: ${error.message}") }
+                    }
+            }
+        }
+    }
+    
+    fun removeFromDlnaQueue(itemId: String) {
+        deviceRepository.dlnaQueue.removeFromQueue(itemId)
+    }
+    
+    fun clearDlnaQueue() {
+        deviceRepository.dlnaQueue.clearQueue()
+    }
+    
+    private fun castLink(link: String, device: Device, addToQueue: Boolean, title: String = "Video") {
         viewModelScope.launch {
             _uiState.update { it.copy(castingMessage = "Unlocking link...") }
             
@@ -158,7 +216,7 @@ class DownloadsViewModel @Inject constructor(
                     val action = if (addToQueue) "Adding to queue..." else "Casting to ${device.name}..."
                     _uiState.update { it.copy(castingMessage = action) }
                     
-                    deviceRepository.castToDevice(device, unlockedLink.link, addToQueue)
+                    deviceRepository.castToDevice(device, unlockedLink.link, addToQueue, title)
                         .onSuccess {
                              val message = if (addToQueue) "Added to queue!" else "Casting started!"
                              _uiState.update { it.copy(castingMessage = message, error = null) }

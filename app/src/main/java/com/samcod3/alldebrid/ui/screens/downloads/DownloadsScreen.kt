@@ -127,6 +127,32 @@ fun DownloadsScreen(
             }
         )
     }
+    
+    // Show DLNA Queue Dialog
+    if (uiState.showDlnaQueueDialog) {
+        AlertDialog(
+            onDismissRequest = { viewModel.dismissDlnaQueueDialog() },
+            icon = { Icon(Icons.Default.Cast, null) },
+            title = { Text("Queue has items") },
+            text = { 
+                Column {
+                    Text("You have ${uiState.dlnaQueue.size} video(s) in queue.")
+                    Spacer(Modifier.height(8.dp))
+                    Text("Do you want to play this now or add it to the queue?")
+                }
+            },
+            confirmButton = {
+                Button(onClick = { viewModel.playNow() }) {
+                    Text("Play Now")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.addToQueue() }) {
+                    Text("Add to Queue")
+                }
+            }
+        )
+    }
 
     // Device selector dialog
     var showDeviceSelector by remember { mutableStateOf(false) }
@@ -167,6 +193,38 @@ fun DownloadsScreen(
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
+                                }
+                            }
+                        }
+                        
+                        // DLNA Queue info
+                        if (uiState.selectedDevice?.type == com.samcod3.alldebrid.data.model.DeviceType.DLNA && 
+                            uiState.dlnaQueue.isNotEmpty()) {
+                            Spacer(Modifier.height(12.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    "Queue: ${uiState.dlnaQueue.size} video(s)",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                                Row {
+                                    TextButton(
+                                        onClick = { 
+                                            viewModel.playNextInDlnaQueue()
+                                            showDeviceSelector = false
+                                        }
+                                    ) {
+                                        Text("Play Next")
+                                    }
+                                    TextButton(
+                                        onClick = { viewModel.clearDlnaQueue() }
+                                    ) {
+                                        Text("Clear", color = MaterialTheme.colorScheme.error)
+                                    }
                                 }
                             }
                         }
@@ -286,7 +344,7 @@ fun DownloadsScreen(
                                 magnet = magnet,
                                 onDelete = { viewModel.deleteMagnet(magnet.id) },
                                 onUnlock = { link -> viewModel.unlockAndCopy(link) },
-                                onPlay = { link -> viewModel.playLink(link) }
+                                onPlay = { link, title -> viewModel.playLink(link, title) }
                             )
                         }
                     }

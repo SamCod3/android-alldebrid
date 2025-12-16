@@ -112,11 +112,15 @@
     <string name="call_notification_incoming_text">Incoming call</string>
     <string name="call_notification_ongoing_text">Ongoing call</string>
     <string name="call_notification_screening_text">Screening an incoming call</string>
+    <string name="cancel">Cancel</string>
     <string name="cast_to">Cast to…</string>
     <string name="close_drawer">"Close navigation menu"</string>
     <string name="close_sheet">"Close sheet"</string>
     <string name="default_error_message">"Invalid input"</string>
     <string name="default_popup_window_title" ns1:ignore="ExtraTranslation">"Pop-Up Window"</string>
+    <string name="device_selector_discover">Discover</string>
+    <string name="device_selector_empty">No devices found. Tap \'Discover\' to scan.</string>
+    <string name="device_selector_title">Select Device</string>
     <string name="devices_discover">Discover Devices</string>
     <string name="devices_dlna">DLNA</string>
     <string name="devices_empty">No devices found</string>

@@ -2,7 +2,11 @@
 <resources>
     <color name="ic_launcher_background">#00C853</color>
     <string name="app_name">AllDebrid Manager</string>
+    <string name="cancel">Cancel</string>
     <string name="cast_to">Cast to…</string>
+    <string name="device_selector_discover">Discover</string>
+    <string name="device_selector_empty">No devices found. Tap \'Discover\' to scan.</string>
+    <string name="device_selector_title">Select Device</string>
     <string name="devices_discover">Discover Devices</string>
     <string name="devices_dlna">DLNA</string>
     <string name="devices_empty">No devices found</string>

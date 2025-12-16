@@ -24,7 +24,8 @@ import javax.inject.Singleton
 class DeviceRepository @Inject constructor(
     private val kodiApi: KodiApi,
     private val settingsDataStore: SettingsDataStore,
-    private val discoveryManager: DeviceDiscoveryManager
+    private val discoveryManager: DeviceDiscoveryManager,
+    val dlnaQueue: DlnaQueueManager
 ) {
     
     private val _devices = MutableStateFlow<List<Device>>(emptyList())
@@ -63,15 +64,32 @@ class DeviceRepository @Inject constructor(
         settingsDataStore.clearSelectedDevice()
     }
     
-    suspend fun castToDevice(device: Device, url: String, addToQueue: Boolean = false): Result<Unit> {
+    suspend fun castToDevice(device: Device, url: String, addToQueue: Boolean = false, title: String = "Video"): Result<Unit> {
         return try {
             when (device.type) {
                 DeviceType.KODI -> castToKodi(device, url, addToQueue)
-                DeviceType.DLNA -> castToDlna(device, url)
+                DeviceType.DLNA -> {
+                    if (addToQueue) {
+                        // Add to DLNA queue
+                        dlnaQueue.addToQueue(url, title)
+                        Result.success(Unit)
+                    } else {
+                        // Play immediately
+                        castToDlna(device, url)
+                    }
+                }
             }
         } catch (e: Exception) {
             Result.failure(e)
         }
+    }
+    
+    /**
+     * Play next item in DLNA queue
+     */
+    suspend fun playNextInDlnaQueue(device: Device): Result<Unit> {
+        val nextItem = dlnaQueue.popNext() ?: return Result.failure(Exception("Queue is empty"))
+        return castToDlna(device, nextItem.url)
     }
     
     suspend fun checkKodiPlaying(device: Device): Result<Boolean> {
