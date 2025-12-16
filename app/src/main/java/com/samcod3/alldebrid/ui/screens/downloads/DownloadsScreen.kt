@@ -252,12 +252,8 @@ fun DownloadsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                modifier = Modifier.height(48.dp),
                 title = { 
-                    Text(
-                        stringResource(R.string.nav_downloads),
-                        style = MaterialTheme.typography.titleMedium
-                    ) 
+                    Text(stringResource(R.string.nav_downloads))
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer,
@@ -273,8 +269,7 @@ fun DownloadsScreen(
                             } else {
                                 showDeviceSelector = true
                             }
-                        },
-                        modifier = Modifier.size(40.dp)
+                        }
                     ) {
                         Icon(
                             imageVector = if (uiState.selectedDevice != null) 
@@ -283,8 +278,7 @@ fun DownloadsScreen(
                             tint = if (uiState.selectedDevice != null)
                                 MaterialTheme.colorScheme.primary
                             else
-                                MaterialTheme.colorScheme.onPrimaryContainer,
-                            modifier = Modifier.size(20.dp)
+                                MaterialTheme.colorScheme.onPrimaryContainer
                         )
                     }
                 }
