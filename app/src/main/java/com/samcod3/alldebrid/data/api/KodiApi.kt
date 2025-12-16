@@ -53,4 +53,12 @@ object KodiCommands {
     )
     
     fun getActivePlayers() = KodiRequest(method = "Player.GetActivePlayers")
+    
+    fun addToPlaylist(url: String, playlistId: Int = 1) = KodiRequest(
+        method = "Playlist.Add",
+        params = mapOf(
+            "playlistid" to playlistId,
+            "item" to mapOf("file" to url)
+        )
+    )
 }

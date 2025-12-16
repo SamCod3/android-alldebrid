@@ -44,6 +44,8 @@ fun WebLoginScreen(
     var progress by remember { mutableFloatStateOf(0f) }
     var statusText by remember { mutableStateOf("Loading AllDebrid...") }
     var isExtractingKey by remember { mutableStateOf(false) }
+    var extractionFailed by remember { mutableStateOf(false) }
+    var extractionStartTime by remember { mutableStateOf(0L) }
 
     Scaffold(
         topBar = {
@@ -73,7 +75,7 @@ fun WebLoginScreen(
                 )
             }
             
-            if (isExtractingKey) {
+            if (isExtractingKey && !extractionFailed) {
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
@@ -85,6 +87,41 @@ fun WebLoginScreen(
                             style = MaterialTheme.typography.bodyMedium,
                             modifier = Modifier.padding(top = 16.dp)
                         )
+                        
+                        // Check for timeout
+                        if (extractionStartTime > 0 && 
+                            System.currentTimeMillis() - extractionStartTime > 10000) {
+                            extractionFailed = true
+                            statusText = "API key extraction timed out"
+                        }
+                    }
+                }
+            } else if (extractionFailed) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.padding(16.dp)
+                    ) {
+                        Text(
+                            text = "Failed to extract API key automatically",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                        Text(
+                            text = "Please go back and enter your API key manually from the API Keys Manager",
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.padding(top = 8.dp),
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                        )
+                        androidx.compose.material3.Button(
+                            onClick = onBack,
+                            modifier = Modifier.padding(top = 16.dp)
+                        ) {
+                            Text("Go Back")
+                        }
                     }
                 }
             } else {
@@ -93,10 +130,12 @@ fun WebLoginScreen(
                     onLoadingChange = { isLoading = it },
                     onLoginDetected = {
                         isExtractingKey = true
+                        extractionStartTime = System.currentTimeMillis()
                         statusText = "Extracting API Key..."
                     },
                     onApiKeyExtracted = onApiKeyExtracted,
-                    onStatusChange = { statusText = it }
+                    onStatusChange = { statusText = it },
+                    onExtractionFailed = { extractionFailed = true }
                 )
             }
         }
@@ -110,7 +149,8 @@ private fun WebViewContent(
     onLoadingChange: (Boolean) -> Unit,
     onLoginDetected: () -> Unit,
     onApiKeyExtracted: (String) -> Unit,
-    onStatusChange: (String) -> Unit
+    onStatusChange: (String) -> Unit,
+    onExtractionFailed: () -> Unit
 ) {
     var webView by remember { mutableStateOf<WebView?>(null) }
     var hasDetectedLogin by remember { mutableStateOf(false) }
@@ -135,7 +175,11 @@ private fun WebViewContent(
                 // JavaScript interface for extracting API key
                 addJavascriptInterface(
                     ApiKeyExtractor { apiKey ->
-                        onApiKeyExtracted(apiKey)
+                        if (apiKey == "NO_KEYS_FOUND" || apiKey.startsWith("ERROR:")) {
+                            onExtractionFailed()
+                        } else {
+                            onApiKeyExtracted(apiKey)
+                        }
                     },
                     "AndroidApp"
                 )
@@ -216,7 +260,7 @@ private fun WebViewContent(
                 }
                 
                 // Load AllDebrid login page
-                loadUrl("https://alldebrid.com/login/")
+                loadUrl("https://alldebrid.com/register/#login")
                 webView = this
             }
         },

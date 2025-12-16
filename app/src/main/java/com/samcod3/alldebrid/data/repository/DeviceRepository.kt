@@ -48,10 +48,10 @@ class DeviceRepository @Inject constructor(
         settingsDataStore.clearSelectedDevice()
     }
     
-    suspend fun castToDevice(device: Device, url: String): Result<Unit> {
+    suspend fun castToDevice(device: Device, url: String, addToQueue: Boolean = false): Result<Unit> {
         return try {
             when (device.type) {
-                DeviceType.KODI -> castToKodi(device, url)
+                DeviceType.KODI -> castToKodi(device, url, addToQueue)
                 DeviceType.DLNA -> castToDlna(device, url)
             }
         } catch (e: Exception) {
@@ -59,10 +59,33 @@ class DeviceRepository @Inject constructor(
         }
     }
     
-    private suspend fun castToKodi(device: Device, url: String): Result<Unit> {
+    suspend fun checkKodiPlaying(device: Device): Result<Boolean> {
         return try {
             val kodiUrl = "${device.fullAddress}/jsonrpc"
-            val response = kodiApi.sendCommand(kodiUrl, KodiCommands.playUrl(url))
+            val response = kodiApi.sendCommand(kodiUrl, KodiCommands.getActivePlayers())
+            
+            if (response.isSuccessful && response.body()?.error == null) {
+                // Parse result to check if there are active players
+                val result = response.body()?.result
+                val isPlaying = result != null && result.toString().contains("playerid")
+                Result.success(isPlaying)
+            } else {
+                Result.success(false)
+            }
+        } catch (e: Exception) {
+            Result.success(false)
+        }
+    }
+    
+    private suspend fun castToKodi(device: Device, url: String, addToQueue: Boolean = false): Result<Unit> {
+        return try {
+            val kodiUrl = "${device.fullAddress}/jsonrpc"
+            val command = if (addToQueue) {
+                KodiCommands.addToPlaylist(url)
+            } else {
+                KodiCommands.playUrl(url)
+            }
+            val response = kodiApi.sendCommand(kodiUrl, command)
             
             if (response.isSuccessful && response.body()?.error == null) {
                 Result.success(Unit)

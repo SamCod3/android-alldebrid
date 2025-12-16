@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
@@ -88,6 +89,26 @@ fun DownloadsScreen(
             dismissButton = {
                 TextButton(onClick = { viewModel.clearMessage() }) {
                     Text("Cancel")
+                }
+            }
+        )
+    }
+    
+    // Show Kodi Queue Dialog
+    if (uiState.showKodiQueueDialog) {
+        AlertDialog(
+            onDismissRequest = { viewModel.dismissKodiQueueDialog() },
+            icon = { Icon(Icons.Default.PlayArrow, null) },
+            title = { Text("Kodi is Playing") },
+            text = { Text("Kodi is currently playing content. Do you want to play this now or add it to the queue?") },
+            confirmButton = {
+                Button(onClick = { viewModel.playNow() }) {
+                    Text("Play Now")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.addToQueue() }) {
+                    Text("Add to Queue")
                 }
             }
         )

@@ -22,7 +22,9 @@ data class DownloadsUiState(
     val error: String? = null,
     val requiresIpAuthorization: Boolean = false,
     val selectedDevice: Device? = null,
-    val castingMessage: String? = null
+    val castingMessage: String? = null,
+    val showKodiQueueDialog: Boolean = false,
+    val pendingCastLink: String? = null
 )
 
 @HiltViewModel
@@ -73,29 +75,73 @@ class DownloadsViewModel @Inject constructor(
     fun playLink(link: String) {
         val device = _uiState.value.selectedDevice
         if (device != null) {
-            // Unlock and Cast
-            castLink(link, device)
+            // Check if it's Kodi and if something is playing
+            if (device.type == com.samcod3.alldebrid.data.model.DeviceType.KODI) {
+                viewModelScope.launch {
+                    deviceRepository.checkKodiPlaying(device)
+                        .onSuccess { isPlaying ->
+                            if (isPlaying) {
+                                // Show dialog: Play now or add to queue?
+                                _uiState.update { 
+                                    it.copy(
+                                        showKodiQueueDialog = true,
+                                        pendingCastLink = link
+                                    ) 
+                                }
+                            } else {
+                                // Not playing, just cast
+                                castLink(link, device, addToQueue = false)
+                            }
+                        }
+                        .onFailure {
+                            // If check fails, just cast
+                            castLink(link, device, addToQueue = false)
+                        }
+                }
+            } else {
+                // DLNA: just cast directly
+                castLink(link, device, addToQueue = false)
+            }
         } else {
-            // Just Unlock (user might want to open locally if no device selected? 
-            // Or UI should handle "No device" prompt.
-            // For now, let's try to unlock and if successful, maybe open intent or just show message)
-            // But per request "option unlock key... be a play to selected device".
-            // So if no device, we should probably prompt user.
             _uiState.update { it.copy(error = "No device selected. Please select a device in Devices tab.") }
         }
     }
     
-    private fun castLink(link: String, device: Device) {
+    fun dismissKodiQueueDialog() {
+        _uiState.update { it.copy(showKodiQueueDialog = false, pendingCastLink = null) }
+    }
+    
+    fun playNow() {
+        val link = _uiState.value.pendingCastLink
+        val device = _uiState.value.selectedDevice
+        if (link != null && device != null) {
+            dismissKodiQueueDialog()
+            castLink(link, device, addToQueue = false)
+        }
+    }
+    
+    fun addToQueue() {
+        val link = _uiState.value.pendingCastLink
+        val device = _uiState.value.selectedDevice
+        if (link != null && device != null) {
+            dismissKodiQueueDialog()
+            castLink(link, device, addToQueue = true)
+        }
+    }
+    
+    private fun castLink(link: String, device: Device, addToQueue: Boolean) {
         viewModelScope.launch {
             _uiState.update { it.copy(castingMessage = "Unlocking link...") }
             
             repository.unlockLink(link)
                 .onSuccess { unlockedLink ->
-                    _uiState.update { it.copy(castingMessage = "Casting to ${device.name}...") }
+                    val action = if (addToQueue) "Adding to queue..." else "Casting to ${device.name}..."
+                    _uiState.update { it.copy(castingMessage = action) }
                     
-                    deviceRepository.castToDevice(device, unlockedLink.link)
+                    deviceRepository.castToDevice(device, unlockedLink.link, addToQueue)
                         .onSuccess {
-                             _uiState.update { it.copy(castingMessage = "Casting started!", error = null) }
+                             val message = if (addToQueue) "Added to queue!" else "Casting started!"
+                             _uiState.update { it.copy(castingMessage = message, error = null) }
                              // Clear message after delay?
                         }
                         .onFailure { error ->

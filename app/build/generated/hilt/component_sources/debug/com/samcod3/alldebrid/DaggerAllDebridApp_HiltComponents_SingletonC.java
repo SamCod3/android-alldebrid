@@ -415,30 +415,30 @@ public final class DaggerAllDebridApp_HiltComponents_SingletonC {
 
     @IdentifierNameString
     private static final class LazyClassKeyProvider {
-      static String com_samcod3_alldebrid_ui_screens_settings_SettingsViewModel = "com.samcod3.alldebrid.ui.screens.settings.SettingsViewModel";
-
       static String com_samcod3_alldebrid_ui_screens_login_ApiKeyManagerViewModel = "com.samcod3.alldebrid.ui.screens.login.ApiKeyManagerViewModel";
+
+      static String com_samcod3_alldebrid_ui_screens_search_SearchViewModel = "com.samcod3.alldebrid.ui.screens.search.SearchViewModel";
+
+      static String com_samcod3_alldebrid_ui_screens_settings_SettingsViewModel = "com.samcod3.alldebrid.ui.screens.settings.SettingsViewModel";
 
       static String com_samcod3_alldebrid_ui_screens_devices_DevicesViewModel = "com.samcod3.alldebrid.ui.screens.devices.DevicesViewModel";
 
       static String com_samcod3_alldebrid_ui_screens_downloads_DownloadsViewModel = "com.samcod3.alldebrid.ui.screens.downloads.DownloadsViewModel";
 
-      static String com_samcod3_alldebrid_ui_screens_search_SearchViewModel = "com.samcod3.alldebrid.ui.screens.search.SearchViewModel";
+      @KeepFieldType
+      ApiKeyManagerViewModel com_samcod3_alldebrid_ui_screens_login_ApiKeyManagerViewModel2;
+
+      @KeepFieldType
+      SearchViewModel com_samcod3_alldebrid_ui_screens_search_SearchViewModel2;
 
       @KeepFieldType
       SettingsViewModel com_samcod3_alldebrid_ui_screens_settings_SettingsViewModel2;
-
-      @KeepFieldType
-      ApiKeyManagerViewModel com_samcod3_alldebrid_ui_screens_login_ApiKeyManagerViewModel2;
 
       @KeepFieldType
       DevicesViewModel com_samcod3_alldebrid_ui_screens_devices_DevicesViewModel2;
 
       @KeepFieldType
       DownloadsViewModel com_samcod3_alldebrid_ui_screens_downloads_DownloadsViewModel2;
-
-      @KeepFieldType
-      SearchViewModel com_samcod3_alldebrid_ui_screens_search_SearchViewModel2;
     }
   }
 
@@ -493,19 +493,16 @@ public final class DaggerAllDebridApp_HiltComponents_SingletonC {
     private static final class LazyClassKeyProvider {
       static String com_samcod3_alldebrid_ui_screens_downloads_DownloadsViewModel = "com.samcod3.alldebrid.ui.screens.downloads.DownloadsViewModel";
 
-      static String com_samcod3_alldebrid_ui_screens_login_ApiKeyManagerViewModel = "com.samcod3.alldebrid.ui.screens.login.ApiKeyManagerViewModel";
-
       static String com_samcod3_alldebrid_ui_screens_search_SearchViewModel = "com.samcod3.alldebrid.ui.screens.search.SearchViewModel";
 
       static String com_samcod3_alldebrid_ui_screens_settings_SettingsViewModel = "com.samcod3.alldebrid.ui.screens.settings.SettingsViewModel";
 
       static String com_samcod3_alldebrid_ui_screens_devices_DevicesViewModel = "com.samcod3.alldebrid.ui.screens.devices.DevicesViewModel";
 
-      @KeepFieldType
-      DownloadsViewModel com_samcod3_alldebrid_ui_screens_downloads_DownloadsViewModel2;
+      static String com_samcod3_alldebrid_ui_screens_login_ApiKeyManagerViewModel = "com.samcod3.alldebrid.ui.screens.login.ApiKeyManagerViewModel";
 
       @KeepFieldType
-      ApiKeyManagerViewModel com_samcod3_alldebrid_ui_screens_login_ApiKeyManagerViewModel2;
+      DownloadsViewModel com_samcod3_alldebrid_ui_screens_downloads_DownloadsViewModel2;
 
       @KeepFieldType
       SearchViewModel com_samcod3_alldebrid_ui_screens_search_SearchViewModel2;
@@ -515,6 +512,9 @@ public final class DaggerAllDebridApp_HiltComponents_SingletonC {
 
       @KeepFieldType
       DevicesViewModel com_samcod3_alldebrid_ui_screens_devices_DevicesViewModel2;
+
+      @KeepFieldType
+      ApiKeyManagerViewModel com_samcod3_alldebrid_ui_screens_login_ApiKeyManagerViewModel2;
     }
 
     private static final class SwitchingProvider<T> implements Provider<T> {
@@ -545,7 +545,7 @@ public final class DaggerAllDebridApp_HiltComponents_SingletonC {
           return (T) new DevicesViewModel(singletonCImpl.deviceRepositoryProvider.get());
 
           case 2: // com.samcod3.alldebrid.ui.screens.downloads.DownloadsViewModel 
-          return (T) new DownloadsViewModel(singletonCImpl.allDebridRepositoryProvider.get());
+          return (T) new DownloadsViewModel(singletonCImpl.allDebridRepositoryProvider.get(), singletonCImpl.deviceRepositoryProvider.get());
 
           case 3: // com.samcod3.alldebrid.ui.screens.search.SearchViewModel 
           return (T) new SearchViewModel(singletonCImpl.jackettRepositoryProvider.get(), singletonCImpl.allDebridRepositoryProvider.get());
