@@ -1,0 +1,10 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- AllDebrid "AD" style icon -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,32L34,76L42,76L46,66L62,66L66,76L74,76L54,32ZM49,58L54,44L59,58L49,58Z"/>
+</vector>

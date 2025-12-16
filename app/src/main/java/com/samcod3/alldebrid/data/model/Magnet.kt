@@ -59,7 +59,10 @@ data class MagnetsResponse(
     val status: String,
     
     @SerializedName("data")
-    val data: MagnetsData?
+    val data: MagnetsData?,
+    
+    @SerializedName("error")
+    val error: ApiError? = null
 )
 
 data class MagnetsData(

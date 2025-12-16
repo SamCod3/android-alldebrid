@@ -24,7 +24,10 @@ data class UserResponse(
     val status: String,
     
     @SerializedName("data")
-    val data: UserData?
+    val data: UserData?,
+    
+    @SerializedName("error")
+    val error: ApiError? = null
 )
 
 data class UserData(
