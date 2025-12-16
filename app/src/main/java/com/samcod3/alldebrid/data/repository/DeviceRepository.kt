@@ -26,6 +26,18 @@ class DeviceRepository @Inject constructor(
     
     private val _devices = MutableStateFlow<List<Device>>(emptyList())
     
+    init {
+        // Load cached devices on init
+        // Using viewModelScope equivalent (GlobalScope for simplicity)
+        kotlinx.coroutines.GlobalScope.launch {
+            settingsDataStore.getDiscoveredDevicesCache().collect { cachedDevices ->
+                if (_devices.value.isEmpty() && cachedDevices.isNotEmpty()) {
+                    _devices.value = cachedDevices
+                }
+            }
+        }
+    }
+    
     fun getDiscoveredDevices(): Flow<List<Device>> = _devices.asStateFlow()
     
     fun getSelectedDevice(): Flow<Device?> = settingsDataStore.selectedDevice
@@ -34,6 +46,8 @@ class DeviceRepository @Inject constructor(
         return try {
             val devices = discoveryManager.discoverAll()
             _devices.value = devices
+            // Save to cache
+            settingsDataStore.saveDiscoveredDevices(devices)
             Result.success(devices)
         } catch (e: Exception) {
             Result.failure(e)

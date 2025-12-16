@@ -14,6 +14,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.Job
 import javax.inject.Inject
 
 data class DownloadsUiState(
@@ -35,6 +37,8 @@ class DownloadsViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow(DownloadsUiState())
     val uiState: StateFlow<DownloadsUiState> = _uiState.asStateFlow()
+    
+    private var messageClearJob: Job? = null
 
     init {
         observeSelectedDevice()
@@ -142,7 +146,7 @@ class DownloadsViewModel @Inject constructor(
                         .onSuccess {
                              val message = if (addToQueue) "Added to queue!" else "Casting started!"
                              _uiState.update { it.copy(castingMessage = message, error = null) }
-                             // Clear message after delay?
+                             scheduleMessageClear()
                         }
                         .onFailure { error ->
                              _uiState.update { it.copy(castingMessage = null, error = "Casting failed: ${error.message}") }
@@ -185,5 +189,21 @@ class DownloadsViewModel @Inject constructor(
     
     fun clearMessage() {
         _uiState.update { it.copy(castingMessage = null, error = null) }
+        messageClearJob?.cancel()
+        messageClearJob = null
+    }
+    
+    fun clearAllMessages() {
+        _uiState.update { it.copy(castingMessage = null, error = null) }
+        messageClearJob?.cancel()
+        messageClearJob = null
+    }
+    
+    private fun scheduleMessageClear() {
+        messageClearJob?.cancel()
+        messageClearJob = viewModelScope.launch {
+            delay(3000) // 3 seconds
+            _uiState.update { it.copy(castingMessage = null) }
+        }
     }
 }

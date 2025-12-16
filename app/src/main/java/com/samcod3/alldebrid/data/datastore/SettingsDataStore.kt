@@ -32,6 +32,9 @@ class SettingsDataStore @Inject constructor(
         private val USE_CUSTOM_IP_RANGE = booleanPreferencesKey("use_custom_ip_range")
         private val CUSTOM_IP_PREFIX = stringPreferencesKey("custom_ip_prefix")
         
+        // Discovered Devices Cache (JSON)
+        private val DISCOVERED_DEVICES_CACHE = stringPreferencesKey("discovered_devices_cache")
+        
         // Selected Device
         private val SEL_DEV_ID = stringPreferencesKey("sel_dev_id")
         private val SEL_DEV_NAME = stringPreferencesKey("sel_dev_name")
@@ -130,6 +133,55 @@ class SettingsDataStore @Inject constructor(
             prefs.remove(SEL_DEV_PORT)
             prefs.remove(SEL_DEV_TYPE)
             prefs.remove(SEL_DEV_CONTROL_URL)
+        }
+    }
+    
+    suspend fun saveDiscoveredDevices(devices: List<Device>) {
+        // Simple serialization: device1|device2|device3
+        // Each device: id,name,address,port,type,controlUrl
+        val serialized = devices.joinToString("|") { device ->
+            listOf(
+                device.id,
+                device.name,
+                device.address,
+                device.port.toString(),
+                device.type.name,
+                device.controlUrl ?: ""
+            ).joinToString(",")
+        }
+        context.dataStore.edit { prefs ->
+            prefs[DISCOVERED_DEVICES_CACHE] = serialized
+        }
+    }
+    
+    fun getDiscoveredDevicesCache(): Flow<List<Device>> = context.dataStore.data.map { prefs ->
+        val serialized = prefs[DISCOVERED_DEVICES_CACHE] ?: ""
+        if (serialized.isBlank()) {
+            emptyList()
+        } else {
+            try {
+                serialized.split("|").mapNotNull { deviceStr ->
+                    val parts = deviceStr.split(",")
+                    if (parts.size >= 5) {
+                        Device(
+                            id = parts[0],
+                            name = parts[1],
+                            address = parts[2],
+                            port = parts[3].toIntOrNull() ?: 8080,
+                            type = try {
+                                DeviceType.valueOf(parts[4])
+                            } catch (e: Exception) {
+                                DeviceType.DLNA
+                            },
+                            controlUrl = parts.getOrNull(5)?.takeIf { it.isNotBlank() }
+                        )
+                    } else {
+                        null
+                    }
+                }
+            } catch (e: Exception) {
+                emptyList()
+            }
         }
     }
     
