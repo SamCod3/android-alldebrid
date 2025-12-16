@@ -172,72 +172,61 @@ class AllDebridRepository @Inject constructor(
     
     private suspend fun downloadAndUploadTorrent(apiKey: String, torrentUrl: String): Result<Unit> = withContext(Dispatchers.IO) {
         try {
-            // Download the torrent file
+            // Don't follow redirects automatically - we need to catch magnet: redirects
             val client = OkHttpClient.Builder()
                 .connectTimeout(10, java.util.concurrent.TimeUnit.SECONDS)
                 .readTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
-                .followRedirects(true)
-                .followSslRedirects(true)
+                .followRedirects(false) // Manual redirect handling to catch magnet links
+                .followSslRedirects(false)
                 .build()
             
-            val request = Request.Builder()
-                .url(torrentUrl)
-                .header("User-Agent", "Mozilla/5.0 (Android; AllDebridManager)")
-                .build()
+            var currentUrl = torrentUrl
+            var redirectCount = 0
+            val maxRedirects = 5
             
-            val downloadResponse = client.newCall(request).execute()
-            
-            if (!downloadResponse.isSuccessful) {
-                Log.e(TAG, "Failed to download torrent: HTTP ${downloadResponse.code}")
-                val errorMsg = when (downloadResponse.code) {
-                    404 -> "Torrent no disponible - Este tracker puede no tener el archivo"
-                    403 -> "Acceso denegado por el tracker"
-                    500, 502, 503 -> "El tracker no está disponible temporalmente"
-                    else -> "Error descargando torrent (HTTP ${downloadResponse.code})"
-                }
-                return@withContext Result.failure(Exception(errorMsg))
-            }
-            
-            val contentType = downloadResponse.header("Content-Type") ?: ""
-            Log.d(TAG, "Downloaded content type: $contentType")
-            
-            val torrentBytes = downloadResponse.body?.bytes()
-                ?: return@withContext Result.failure(Exception("El tracker devolvió un archivo vacío"))
-            
-            Log.d(TAG, "Downloaded torrent file: ${torrentBytes.size} bytes")
-            
-            // Validate that this is actually a torrent file (bencoded format starts with 'd')
-            if (torrentBytes.isEmpty() || torrentBytes[0] != 'd'.code.toByte()) {
-                val preview = String(torrentBytes.take(100).toByteArray())
-                Log.e(TAG, "Invalid torrent content (not bencoded): ${preview.take(50)}")
+            while (redirectCount < maxRedirects) {
+                val request = Request.Builder()
+                    .url(currentUrl)
+                    .header("User-Agent", "Mozilla/5.0 (Android; AllDebridManager)")
+                    .build()
                 
-                // Check if it's HTML (common error response)
-                if (preview.contains("<html", ignoreCase = true) || 
-                    preview.contains("<!DOCTYPE", ignoreCase = true)) {
-                    return@withContext Result.failure(Exception("Este tracker no proporciona torrents descargables"))
+                val response = client.newCall(request).execute()
+                
+                // Check for redirect (3xx)
+                if (response.isRedirect) {
+                    val location = response.header("Location")
+                    response.close()
+                    
+                    if (location == null) {
+                        return@withContext Result.failure(Exception("Redirección sin destino"))
+                    }
+                    
+                    // Check if redirect is to a magnet link!
+                    if (location.startsWith("magnet:")) {
+                        Log.d(TAG, "Tracker redirected to magnet URI, uploading directly")
+                        return@withContext uploadMagnetDirect(apiKey, location)
+                    }
+                    
+                    // Follow HTTP redirect
+                    currentUrl = if (location.startsWith("http")) {
+                        location
+                    } else {
+                        // Handle relative URLs
+                        val base = java.net.URL(currentUrl)
+                        java.net.URL(base, location).toString()
+                    }
+                    redirectCount++
+                    Log.d(TAG, "Following redirect #$redirectCount to: $currentUrl")
+                    continue
                 }
-                return@withContext Result.failure(Exception("Formato de torrent inválido"))
+                
+                // Handle non-redirect response
+                return@withContext handleTorrentResponse(response, apiKey)
             }
             
-            // Upload the torrent file to AllDebrid
-            val requestBody = torrentBytes.toRequestBody("application/x-bittorrent".toMediaType())
-            val filePart = MultipartBody.Part.createFormData(
-                "files[]",
-                "upload.torrent",
-                requestBody
-            )
+            // Too many redirects
+            Result.failure(Exception("Demasiadas redirecciones"))
             
-            val uploadResponse = api.uploadTorrentFile(apiKey = apiKey, file = filePart)
-            val body = uploadResponse.body()
-            
-            if (uploadResponse.isSuccessful && body?.status == "success") {
-                Log.d(TAG, "Torrent file uploaded successfully")
-                Result.success(Unit)
-            } else {
-                val error = body?.error
-                checkForIpError(error?.code, error?.message)
-                Result.failure(Exception(error?.message ?: "Error subiendo a AllDebrid"))
-            }
         } catch (e: java.net.SocketTimeoutException) {
             Log.e(TAG, "Timeout downloading torrent", e)
             Result.failure(Exception("Tiempo de espera agotado - Jackett tardó demasiado"))
@@ -247,6 +236,65 @@ class AllDebridRepository @Inject constructor(
         } catch (e: Exception) {
             Log.e(TAG, "Failed to download/upload torrent", e)
             Result.failure(Exception("Error: ${e.message ?: "desconocido"}"))
+        }
+    }
+    
+    private suspend fun handleTorrentResponse(response: okhttp3.Response, apiKey: String): Result<Unit> {
+        if (!response.isSuccessful) {
+            Log.e(TAG, "Failed to download torrent: HTTP ${response.code}")
+            val errorMsg = when (response.code) {
+                404 -> "Torrent no disponible - Este tracker puede no tener el archivo"
+                403 -> "Acceso denegado por el tracker"
+                500, 502, 503 -> "El tracker no está disponible temporalmente"
+                else -> "Error descargando torrent (HTTP ${response.code})"
+            }
+            response.close()
+            return Result.failure(Exception(errorMsg))
+        }
+        
+        val contentType = response.header("Content-Type") ?: ""
+        Log.d(TAG, "Downloaded content type: $contentType")
+        
+        val torrentBytes = response.body?.bytes()
+        response.close()
+        
+        if (torrentBytes == null || torrentBytes.isEmpty()) {
+            return Result.failure(Exception("El tracker devolvió un archivo vacío"))
+        }
+        
+        Log.d(TAG, "Downloaded torrent file: ${torrentBytes.size} bytes")
+        
+        // Validate that this is actually a torrent file (bencoded format starts with 'd')
+        if (torrentBytes[0] != 'd'.code.toByte()) {
+            val preview = String(torrentBytes.take(100).toByteArray())
+            Log.e(TAG, "Invalid torrent content (not bencoded): ${preview.take(50)}")
+            
+            // Check if it's HTML (common error response - login page or Cloudflare)
+            if (preview.contains("<html", ignoreCase = true) || 
+                preview.contains("<!DOCTYPE", ignoreCase = true)) {
+                return Result.failure(Exception("El tracker pide login o tiene protección Cloudflare"))
+            }
+            return Result.failure(Exception("Formato de torrent inválido"))
+        }
+        
+        // Upload the torrent file to AllDebrid
+        val requestBody = torrentBytes.toRequestBody("application/x-bittorrent".toMediaType())
+        val filePart = MultipartBody.Part.createFormData(
+            "files[]",
+            "upload.torrent",
+            requestBody
+        )
+        
+        val uploadResponse = api.uploadTorrentFile(apiKey = apiKey, file = filePart)
+        val body = uploadResponse.body()
+        
+        return if (uploadResponse.isSuccessful && body?.status == "success") {
+            Log.d(TAG, "Torrent file uploaded successfully")
+            Result.success(Unit)
+        } else {
+            val error = body?.error
+            checkForIpError(error?.code, error?.message)
+            Result.failure(Exception(error?.message ?: "Error subiendo a AllDebrid"))
         }
     }
     
