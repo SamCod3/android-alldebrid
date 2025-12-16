@@ -189,14 +189,20 @@ class AllDebridRepository @Inject constructor(
             
             if (!downloadResponse.isSuccessful) {
                 Log.e(TAG, "Failed to download torrent: HTTP ${downloadResponse.code}")
-                return@withContext Result.failure(Exception("Failed to download torrent: ${downloadResponse.code}"))
+                val errorMsg = when (downloadResponse.code) {
+                    404 -> "Torrent no disponible - Este tracker puede no tener el archivo"
+                    403 -> "Acceso denegado por el tracker"
+                    500, 502, 503 -> "El tracker no está disponible temporalmente"
+                    else -> "Error descargando torrent (HTTP ${downloadResponse.code})"
+                }
+                return@withContext Result.failure(Exception(errorMsg))
             }
             
             val contentType = downloadResponse.header("Content-Type") ?: ""
             Log.d(TAG, "Downloaded content type: $contentType")
             
             val torrentBytes = downloadResponse.body?.bytes()
-                ?: return@withContext Result.failure(Exception("Empty torrent file"))
+                ?: return@withContext Result.failure(Exception("El tracker devolvió un archivo vacío"))
             
             Log.d(TAG, "Downloaded torrent file: ${torrentBytes.size} bytes")
             
@@ -208,9 +214,9 @@ class AllDebridRepository @Inject constructor(
                 // Check if it's HTML (common error response)
                 if (preview.contains("<html", ignoreCase = true) || 
                     preview.contains("<!DOCTYPE", ignoreCase = true)) {
-                    return@withContext Result.failure(Exception("Tracker returned HTML instead of torrent file"))
+                    return@withContext Result.failure(Exception("Este tracker no proporciona torrents descargables"))
                 }
-                return@withContext Result.failure(Exception("Invalid torrent file format"))
+                return@withContext Result.failure(Exception("Formato de torrent inválido"))
             }
             
             // Upload the torrent file to AllDebrid
@@ -230,14 +236,17 @@ class AllDebridRepository @Inject constructor(
             } else {
                 val error = body?.error
                 checkForIpError(error?.code, error?.message)
-                Result.failure(Exception(error?.message ?: "Upload failed"))
+                Result.failure(Exception(error?.message ?: "Error subiendo a AllDebrid"))
             }
         } catch (e: java.net.SocketTimeoutException) {
             Log.e(TAG, "Timeout downloading torrent", e)
-            Result.failure(Exception("Timeout downloading torrent file"))
+            Result.failure(Exception("Tiempo de espera agotado - Jackett tardó demasiado"))
+        } catch (e: java.net.ConnectException) {
+            Log.e(TAG, "Connection failed", e)
+            Result.failure(Exception("No se pudo conectar a Jackett"))
         } catch (e: Exception) {
             Log.e(TAG, "Failed to download/upload torrent", e)
-            Result.failure(e)
+            Result.failure(Exception("Error: ${e.message ?: "desconocido"}"))
         }
     }
     
