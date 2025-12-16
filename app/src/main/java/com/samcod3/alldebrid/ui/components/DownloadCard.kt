@@ -1,6 +1,6 @@
 package com.samcod3.alldebrid.ui.components
 
-import androidx.compose.animation.animateContentSize
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -10,9 +10,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.InsertDriveFile
 import androidx.compose.material.icons.filled.PlayArrow
@@ -20,12 +21,16 @@ import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -51,6 +56,7 @@ private fun String.isMediaFile(): Boolean {
     return extension in VIDEO_EXTENSIONS || extension in AUDIO_EXTENSIONS
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DownloadCard(
     magnet: Magnet,
@@ -59,8 +65,9 @@ fun DownloadCard(
     onPlay: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var expanded by remember { mutableStateOf(false) }
+    var showBottomSheet by remember { mutableStateOf(false) }
     var showAllFiles by remember { mutableStateOf(false) }
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     
     val statusColor = when (magnet.status) {
         "Ready" -> StatusReady
@@ -74,108 +81,53 @@ fun DownloadCard(
     val otherLinks = magnet.links.filter { !it.filename.isMediaFile() }
     val hasOtherFiles = otherLinks.isNotEmpty()
 
-    Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .animateContentSize(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        )
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp)
+    // BottomSheet for file list
+    if (showBottomSheet) {
+        ModalBottomSheet(
+            onDismissRequest = { showBottomSheet = false },
+            sheetState = sheetState
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+                    .padding(bottom = 32.dp)
+                    .verticalScroll(rememberScrollState())
             ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = magnet.filename,
-                        style = MaterialTheme.typography.titleMedium,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Text(
-                            text = magnet.status,
-                            style = MaterialTheme.typography.labelMedium,
-                            color = statusColor
-                        )
-                        Text(
-                            text = "•",
-                            style = MaterialTheme.typography.labelMedium
-                        )
-                        Text(
-                            text = formatSize(magnet.size),
-                            style = MaterialTheme.typography.labelMedium
-                        )
-                        if (mediaLinks.isNotEmpty()) {
-                            Text(
-                                text = "•",
-                                style = MaterialTheme.typography.labelMedium
-                            )
-                            Text(
-                                text = "${mediaLinks.size} media",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                        }
-                    }
-                }
-                
-                Row {
-                    if (magnet.links.isNotEmpty()) {
-                        IconButton(onClick = { expanded = !expanded }) {
-                            Icon(
-                                imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                                contentDescription = null
-                            )
-                        }
-                    }
-                    IconButton(onClick = onDelete) {
-                        Icon(
-                            imageVector = Icons.Default.Delete,
-                            contentDescription = "Delete",
-                            tint = MaterialTheme.colorScheme.error
-                        )
-                    }
-                }
-            }
-            
-            // Progress bar for downloading
-            if (magnet.status == "Downloading" && magnet.downloaded > 0) {
-                Spacer(modifier = Modifier.height(8.dp))
-                LinearProgressIndicator(
-                    progress = { (magnet.downloaded.toFloat() / magnet.size.toFloat()) },
-                    modifier = Modifier.fillMaxWidth(),
-                    color = StatusDownloading
-                )
+                // Header
                 Text(
-                    text = "${((magnet.downloaded.toFloat() / magnet.size.toFloat()) * 100).toInt()}%",
-                    style = MaterialTheme.typography.labelSmall,
-                    modifier = Modifier.align(Alignment.End)
+                    text = magnet.filename,
+                    style = MaterialTheme.typography.titleMedium,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
                 )
-            }
-            
-            // Expanded links
-            if (expanded && magnet.links.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "${formatSize(magnet.size)} • ${magnet.links.size} files",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
                 
-                // Media files (always shown when expanded)
+                Spacer(modifier = Modifier.height(16.dp))
+                HorizontalDivider()
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                // Media files
                 if (mediaLinks.isNotEmpty()) {
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
+                    Text(
+                        text = "Media Files (${mediaLinks.size})",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         mediaLinks.forEach { link ->
                             LinkItem(
                                 link = link,
-                                onClick = { onPlay(link.link) },
+                                onClick = { 
+                                    onPlay(link.link)
+                                    showBottomSheet = false
+                                },
                                 isMedia = true
                             )
                         }
@@ -184,15 +136,15 @@ fun DownloadCard(
                 
                 // Other files with toggle
                 if (hasOtherFiles) {
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "${otherLinks.size} other file${if (otherLinks.size > 1) "s" else ""}",
-                            style = MaterialTheme.typography.labelMedium,
+                            text = "Other Files (${otherLinks.size})",
+                            style = MaterialTheme.typography.labelLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         TextButton(onClick = { showAllFiles = !showAllFiles }) {
@@ -207,19 +159,105 @@ fun DownloadCard(
                     }
                     
                     if (showAllFiles) {
-                        Column(
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             otherLinks.forEach { link ->
                                 LinkItem(
                                     link = link,
-                                    onClick = { onUnlock(link.link) },
+                                    onClick = { 
+                                        onUnlock(link.link)
+                                        showBottomSheet = false
+                                    },
                                     isMedia = false
                                 )
                             }
                         }
                     }
                 }
+            }
+        }
+    }
+
+    // Compact Card
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable(enabled = magnet.links.isNotEmpty()) { showBottomSheet = true },
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = magnet.filename,
+                        style = MaterialTheme.typography.bodyMedium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Text(
+                            text = magnet.status,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = statusColor
+                        )
+                        Text("•", style = MaterialTheme.typography.labelSmall)
+                        Text(
+                            text = formatSize(magnet.size),
+                            style = MaterialTheme.typography.labelSmall
+                        )
+                        if (mediaLinks.isNotEmpty()) {
+                            Text("•", style = MaterialTheme.typography.labelSmall)
+                            Text(
+                                text = "${mediaLinks.size} media",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
+                }
+                
+                Row {
+                    if (magnet.links.isNotEmpty()) {
+                        Icon(
+                            imageVector = Icons.Default.ExpandMore,
+                            contentDescription = "View files",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                    IconButton(
+                        onClick = onDelete,
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Delete,
+                            contentDescription = "Delete",
+                            tint = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                }
+            }
+            
+            // Progress bar for downloading
+            if (magnet.status == "Downloading" && magnet.downloaded > 0) {
+                Spacer(modifier = Modifier.height(6.dp))
+                LinearProgressIndicator(
+                    progress = { (magnet.downloaded.toFloat() / magnet.size.toFloat()) },
+                    modifier = Modifier.fillMaxWidth().height(3.dp),
+                    color = StatusDownloading
+                )
             }
         }
     }
