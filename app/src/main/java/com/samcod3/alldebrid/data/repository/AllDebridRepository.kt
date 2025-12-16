@@ -1,12 +1,20 @@
 package com.samcod3.alldebrid.data.repository
 
+import android.util.Log
 import com.samcod3.alldebrid.data.api.AllDebridApi
 import com.samcod3.alldebrid.data.datastore.SettingsDataStore
 import com.samcod3.alldebrid.data.model.AllDebridError
 import com.samcod3.alldebrid.data.model.Link
 import com.samcod3.alldebrid.data.model.Magnet
 import com.samcod3.alldebrid.data.model.User
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withContext
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.MultipartBody
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -24,6 +32,10 @@ class AllDebridRepository @Inject constructor(
     private val settingsDataStore: SettingsDataStore
 ) {
     
+    companion object {
+        private const val TAG = "AllDebridRepository"
+    }
+    
     private suspend fun getApiKey(): String {
         return settingsDataStore.apiKey.first()
     }
@@ -39,6 +51,17 @@ class AllDebridRepository @Inject constructor(
             )
         }
         return null
+    }
+    
+    /**
+     * Check if the URL is a local address (Jackett usually gives these)
+     */
+    private fun isLocalUrl(url: String): Boolean {
+        return url.contains("127.0.0.1") ||
+               url.contains("localhost") ||
+               url.contains("192.168.") ||
+               url.contains("10.0.") ||
+               url.contains("172.16.")
     }
     
     suspend fun validateApiKey(apiKey: String): Result<User> {
@@ -88,29 +111,115 @@ class AllDebridRepository @Inject constructor(
         }
     }
     
-    suspend fun uploadMagnet(magnet: String): Result<Unit> {
+    /**
+     * Upload a link to AllDebrid - handles magnets, remote URLs, and local torrent files
+     */
+    suspend fun uploadLink(link: String): Result<Unit> {
         return try {
             val apiKey = getApiKey()
             if (apiKey.isBlank()) {
                 return Result.failure(Exception("No API key configured"))
             }
             
-            val response = api.uploadMagnet(apiKey = apiKey, magnet = magnet)
-            val body = response.body()
+            // CASE A: Magnet link - send directly
+            if (link.startsWith("magnet:")) {
+                Log.d(TAG, "Uploading magnet link directly")
+                return uploadMagnetDirect(apiKey, link)
+            }
             
-            if (response.isSuccessful && body?.status == "success") {
+            // CASE B: HTTP/HTTPS URL (torrent file)
+            if (link.startsWith("http://") || link.startsWith("https://")) {
+                // Check if local URL
+                if (isLocalUrl(link)) {
+                    Log.d(TAG, "Local URL detected, downloading torrent file first")
+                    return downloadAndUploadTorrent(apiKey, link)
+                } else {
+                    // Try sending URL directly first
+                    Log.d(TAG, "Remote URL, trying direct upload first")
+                    val result = uploadMagnetDirect(apiKey, link)
+                    if (result.isSuccess) {
+                        return result
+                    }
+                    // If direct upload fails, try downloading and uploading
+                    Log.d(TAG, "Direct upload failed, trying download and upload")
+                    return downloadAndUploadTorrent(apiKey, link)
+                }
+            }
+            
+            // Unknown format, try direct upload
+            uploadMagnetDirect(apiKey, link)
+            
+        } catch (e: IpAuthorizationRequiredException) {
+            Result.failure(e)
+        } catch (e: Exception) {
+            Log.e(TAG, "Upload failed", e)
+            Result.failure(e)
+        }
+    }
+    
+    private suspend fun uploadMagnetDirect(apiKey: String, magnet: String): Result<Unit> {
+        val response = api.uploadMagnet(apiKey = apiKey, magnet = magnet)
+        val body = response.body()
+        
+        return if (response.isSuccessful && body?.status == "success") {
+            Result.success(Unit)
+        } else {
+            val error = body?.error
+            checkForIpError(error?.code, error?.message)
+            Result.failure(Exception(error?.message ?: "Upload failed"))
+        }
+    }
+    
+    private suspend fun downloadAndUploadTorrent(apiKey: String, torrentUrl: String): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            // Download the torrent file
+            val client = OkHttpClient.Builder()
+                .connectTimeout(10, java.util.concurrent.TimeUnit.SECONDS)
+                .readTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+                .build()
+            
+            val request = Request.Builder()
+                .url(torrentUrl)
+                .build()
+            
+            val downloadResponse = client.newCall(request).execute()
+            
+            if (!downloadResponse.isSuccessful) {
+                return@withContext Result.failure(Exception("Failed to download torrent: ${downloadResponse.code}"))
+            }
+            
+            val torrentBytes = downloadResponse.body?.bytes()
+                ?: return@withContext Result.failure(Exception("Empty torrent file"))
+            
+            Log.d(TAG, "Downloaded torrent file: ${torrentBytes.size} bytes")
+            
+            // Upload the torrent file to AllDebrid
+            val requestBody = torrentBytes.toRequestBody("application/x-bittorrent".toMediaType())
+            val filePart = MultipartBody.Part.createFormData(
+                "files[]",
+                "upload.torrent",
+                requestBody
+            )
+            
+            val uploadResponse = api.uploadTorrentFile(apiKey = apiKey, file = filePart)
+            val body = uploadResponse.body()
+            
+            if (uploadResponse.isSuccessful && body?.status == "success") {
+                Log.d(TAG, "Torrent file uploaded successfully")
                 Result.success(Unit)
             } else {
                 val error = body?.error
                 checkForIpError(error?.code, error?.message)
                 Result.failure(Exception(error?.message ?: "Upload failed"))
             }
-        } catch (e: IpAuthorizationRequiredException) {
-            Result.failure(e)
         } catch (e: Exception) {
+            Log.e(TAG, "Failed to download/upload torrent", e)
             Result.failure(e)
         }
     }
+    
+    // Keep legacy name for compatibility
+    suspend fun uploadMagnet(magnet: String): Result<Unit> = uploadLink(magnet)
     
     suspend fun deleteMagnet(id: Long): Result<Unit> {
         return try {

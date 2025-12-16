@@ -63,7 +63,7 @@ class SearchViewModel @Inject constructor(
             
             _uiState.update { it.copy(message = "Adding...") }
             
-            allDebridRepository.uploadMagnet(magnetLink)
+            allDebridRepository.uploadLink(magnetLink)
                 .onSuccess {
                     // Mark as added in UI
                     _uiState.update { state ->
