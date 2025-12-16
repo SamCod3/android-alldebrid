@@ -1,5 +1,8 @@
 package com.samcod3.alldebrid.ui.screens.downloads
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -242,6 +245,23 @@ class DownloadsViewModel @Inject constructor(
                     _uiState.update { it.copy(castingMessage = "Link unlocked: ${unlockedLink.link}") }
                 }
                 .onFailure { handleError(it) }
+        }
+    }
+    
+    fun copyLinkToClipboard(context: Context, link: String) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(castingMessage = "Unlocking...") }
+            repository.unlockLink(link)
+                .onSuccess { unlockedLink ->
+                    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                    val clip = ClipData.newPlainText("AllDebrid Link", unlockedLink.link)
+                    clipboard.setPrimaryClip(clip)
+                    _uiState.update { it.copy(castingMessage = "Link copied!") }
+                    scheduleMessageClear()
+                }
+                .onFailure { error ->
+                    _uiState.update { it.copy(castingMessage = null, error = "Failed: ${error.message}") }
+                }
         }
     }
     

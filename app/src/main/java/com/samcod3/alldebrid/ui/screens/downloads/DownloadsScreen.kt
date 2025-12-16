@@ -1,5 +1,8 @@
 package com.samcod3.alldebrid.ui.screens.downloads
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -46,6 +49,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -260,6 +264,14 @@ fun DownloadsScreen(
                     titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
                 ),
                 actions = {
+                    // Show device name if selected
+                    uiState.selectedDevice?.let { device ->
+                        Text(
+                            text = device.displayName.take(12) + if (device.displayName.length > 12) "…" else "",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
                     // Cast icon with device selector
                     IconButton(
                         onClick = { 
@@ -334,10 +346,13 @@ fun DownloadsScreen(
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         items(uiState.magnets) { magnet ->
+                            val context = LocalContext.current
                             DownloadCard(
                                 magnet = magnet,
                                 onDelete = { viewModel.deleteMagnet(magnet.id) },
-                                onUnlock = { link -> viewModel.unlockAndCopy(link) },
+                                onCopyLink = { link -> 
+                                    viewModel.copyLinkToClipboard(context, link)
+                                },
                                 onPlay = { link, title -> viewModel.playLink(link, title) }
                             )
                         }

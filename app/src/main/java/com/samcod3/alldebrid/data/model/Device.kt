@@ -11,8 +11,12 @@ data class Device(
     val address: String,
     val port: Int,
     val type: DeviceType,
-    val controlUrl: String? = null
+    val controlUrl: String? = null,
+    val customName: String? = null
 ) {
     val fullAddress: String
         get() = "http://$address:$port"
+    
+    val displayName: String
+        get() = customName ?: name
 }

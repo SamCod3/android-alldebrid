@@ -1,6 +1,7 @@
 package com.samcod3.alldebrid.ui.components
 
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -24,17 +25,22 @@ import androidx.compose.ui.unit.dp
 import com.samcod3.alldebrid.data.model.Device
 import com.samcod3.alldebrid.data.model.DeviceType
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun DeviceItem(
     device: Device,
     isSelected: Boolean,
     onClick: () -> Unit,
+    onRename: (Device) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),
+            .combinedClickable(
+                onClick = onClick,
+                onLongClick = { onRename(device) }
+            ),
         colors = CardDefaults.cardColors(
             containerColor = if (isSelected) 
                 MaterialTheme.colorScheme.primaryContainer 
@@ -65,10 +71,17 @@ fun DeviceItem(
             
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = device.name,
+                    text = device.displayName,
                     style = MaterialTheme.typography.titleMedium,
                     color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface
                 )
+                if (device.customName != null) {
+                    Text(
+                        text = device.name,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.5f) else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                    )
+                }
                 Text(
                     text = "${device.address}:${device.port}",
                     style = MaterialTheme.typography.bodySmall,
@@ -94,3 +107,4 @@ fun DeviceItem(
         }
     }
 }
+

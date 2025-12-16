@@ -65,6 +65,22 @@ class DeviceRepository @Inject constructor(
         settingsDataStore.clearSelectedDevice()
     }
     
+    suspend fun renameDevice(device: Device, customName: String?) {
+        val updatedDevice = device.copy(customName = customName)
+        // Update in devices list
+        val updatedDevices = _devices.value.map { 
+            if (it.id == device.id) updatedDevice else it 
+        }
+        _devices.value = updatedDevices
+        // Save to cache
+        settingsDataStore.saveDiscoveredDevices(updatedDevices)
+        // Update selected device if this was the selected one
+        val currentSelected = settingsDataStore.selectedDevice.first()
+        if (currentSelected?.id == device.id) {
+            settingsDataStore.saveSelectedDevice(updatedDevice)
+        }
+    }
+    
     suspend fun castToDevice(device: Device, url: String, addToQueue: Boolean = false, title: String = "Video"): Result<Unit> {
         return try {
             when (device.type) {

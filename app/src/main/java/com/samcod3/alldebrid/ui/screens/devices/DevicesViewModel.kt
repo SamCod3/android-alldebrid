@@ -69,4 +69,10 @@ class DevicesViewModel @Inject constructor(
             deviceRepository.setSelectedDevice(device)
         }
     }
+    
+    fun renameDevice(device: Device, customName: String?) {
+        viewModelScope.launch {
+            deviceRepository.renameDevice(device, customName)
+        }
+    }
 }

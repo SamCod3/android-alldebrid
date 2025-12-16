@@ -1,6 +1,8 @@
 package com.samcod3.alldebrid.ui.components
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -56,12 +58,12 @@ private fun String.isMediaFile(): Boolean {
     return extension in VIDEO_EXTENSIONS || extension in AUDIO_EXTENSIONS
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun DownloadCard(
     magnet: Magnet,
     onDelete: () -> Unit,
-    onUnlock: (String) -> Unit,
+    onCopyLink: (String) -> Unit,
     onPlay: (link: String, title: String) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -120,15 +122,14 @@ fun DownloadCard(
                         color = MaterialTheme.colorScheme.primary
                     )
                     Spacer(modifier = Modifier.height(8.dp))
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         mediaLinks.forEach { link ->
                             LinkItem(
                                 link = link,
                                 onClick = { 
                                     onPlay(link.link, link.filename)
                                     showBottomSheet = false
-                                },
-                                isMedia = true
+                                }
                             )
                         }
                     }
@@ -159,15 +160,20 @@ fun DownloadCard(
                     }
                     
                     if (showAllFiles) {
-                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            text = "(long-press to copy link)",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                            modifier = Modifier.padding(bottom = 8.dp)
+                        )
+                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                             otherLinks.forEach { link ->
-                                LinkItem(
+                                OtherFileItem(
                                     link = link,
-                                    onClick = { 
-                                        onUnlock(link.link)
+                                    onLongPress = { 
+                                        onCopyLink(link.link)
                                         showBottomSheet = false
-                                    },
-                                    isMedia = false
+                                    }
                                 )
                             }
                         }
@@ -266,18 +272,20 @@ fun DownloadCard(
 @Composable
 private fun LinkItem(
     link: MagnetLink,
-    onClick: () -> Unit,
-    isMedia: Boolean
+    onClick: () -> Unit
 ) {
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
-            imageVector = if (isMedia) Icons.Default.PlayArrow else Icons.AutoMirrored.Filled.InsertDriveFile,
+            imageVector = Icons.Default.PlayArrow,
             contentDescription = null,
             modifier = Modifier.size(16.dp),
-            tint = if (isMedia) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+            tint = MaterialTheme.colorScheme.primary
         )
         Spacer(modifier = Modifier.width(8.dp))
         Text(
@@ -286,17 +294,48 @@ private fun LinkItem(
             modifier = Modifier.weight(1f),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
-            color = if (isMedia) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
+            color = MaterialTheme.colorScheme.onSurface
         )
-        TextButton(onClick = onClick) {
-            if (isMedia) {
-                Icon(Icons.Default.PlayArrow, null, modifier = Modifier.size(18.dp))
-                Spacer(modifier = Modifier.width(4.dp))
-                Text("Play")
-            } else {
-                Text("Unlock")
-            }
-        }
+        Icon(
+            imageVector = Icons.Default.PlayArrow,
+            contentDescription = "Play",
+            modifier = Modifier.size(18.dp),
+            tint = MaterialTheme.colorScheme.primary
+        )
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun OtherFileItem(
+    link: MagnetLink,
+    onLongPress: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .combinedClickable(
+                onClick = { },
+                onLongClick = onLongPress
+            )
+            .padding(vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = Icons.AutoMirrored.Filled.InsertDriveFile,
+            contentDescription = null,
+            modifier = Modifier.size(16.dp),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(
+            text = link.filename,
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.weight(1f),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
 
