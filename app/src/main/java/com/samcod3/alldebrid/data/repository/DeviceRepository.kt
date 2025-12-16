@@ -48,10 +48,13 @@ class DeviceRepository @Inject constructor(
     suspend fun discoverDevices(): Result<List<Device>> {
         return try {
             val devices = discoveryManager.discoverAll()
-            _devices.value = devices
+            // Merge with existing to preserve customNames
+            val existing = _devices.value
+            val merged = mergeDevices(existing, devices)
+            _devices.value = merged
             // Save to cache
-            settingsDataStore.saveDiscoveredDevices(devices)
-            Result.success(devices)
+            settingsDataStore.saveDiscoveredDevices(merged)
+            Result.success(merged)
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -64,15 +67,49 @@ class DeviceRepository @Inject constructor(
     suspend fun discoverDevicesManual(): Result<List<Device>> {
         return try {
             val devices = discoveryManager.discoverManualScan()
-            // Merge with existing devices (don't replace, add new ones)
+            // Merge with existing devices - update name but preserve customName
             val existing = _devices.value
-            val merged = (existing + devices).distinctBy { "${it.address}:${it.port}" }
+            val merged = mergeDevices(existing, devices)
             _devices.value = merged
             settingsDataStore.saveDiscoveredDevices(merged)
             Result.success(merged)
         } catch (e: Exception) {
             Result.failure(e)
         }
+    }
+    
+    /**
+     * Merges new devices with existing ones.
+     * - Updates device name (friendlyName) from new discovery
+     * - Preserves user's customName if set
+     * - Adds new devices not in existing list
+     */
+    private fun mergeDevices(existing: List<Device>, new: List<Device>): List<Device> {
+        val existingMap = existing.associateBy { "${it.address}:${it.port}" }
+        val result = mutableListOf<Device>()
+        
+        // First, add all new devices, merging with existing if present
+        for (newDevice in new) {
+            val key = "${newDevice.address}:${newDevice.port}"
+            val existingDevice = existingMap[key]
+            
+            if (existingDevice != null) {
+                // Merge: keep customName from existing, update name from new
+                result.add(newDevice.copy(customName = existingDevice.customName))
+            } else {
+                result.add(newDevice)
+            }
+        }
+        
+        // Add any existing devices not found in new scan
+        for (existingDevice in existing) {
+            val key = "${existingDevice.address}:${existingDevice.port}"
+            if (result.none { "${it.address}:${it.port}" == key }) {
+                result.add(existingDevice)
+            }
+        }
+        
+        return result
     }
     
     suspend fun setSelectedDevice(device: Device) {
