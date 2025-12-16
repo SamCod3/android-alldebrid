@@ -176,22 +176,42 @@ class AllDebridRepository @Inject constructor(
             val client = OkHttpClient.Builder()
                 .connectTimeout(10, java.util.concurrent.TimeUnit.SECONDS)
                 .readTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+                .followRedirects(true)
+                .followSslRedirects(true)
                 .build()
             
             val request = Request.Builder()
                 .url(torrentUrl)
+                .header("User-Agent", "Mozilla/5.0 (Android; AllDebridManager)")
                 .build()
             
             val downloadResponse = client.newCall(request).execute()
             
             if (!downloadResponse.isSuccessful) {
+                Log.e(TAG, "Failed to download torrent: HTTP ${downloadResponse.code}")
                 return@withContext Result.failure(Exception("Failed to download torrent: ${downloadResponse.code}"))
             }
+            
+            val contentType = downloadResponse.header("Content-Type") ?: ""
+            Log.d(TAG, "Downloaded content type: $contentType")
             
             val torrentBytes = downloadResponse.body?.bytes()
                 ?: return@withContext Result.failure(Exception("Empty torrent file"))
             
             Log.d(TAG, "Downloaded torrent file: ${torrentBytes.size} bytes")
+            
+            // Validate that this is actually a torrent file (bencoded format starts with 'd')
+            if (torrentBytes.isEmpty() || torrentBytes[0] != 'd'.code.toByte()) {
+                val preview = String(torrentBytes.take(100).toByteArray())
+                Log.e(TAG, "Invalid torrent content (not bencoded): ${preview.take(50)}")
+                
+                // Check if it's HTML (common error response)
+                if (preview.contains("<html", ignoreCase = true) || 
+                    preview.contains("<!DOCTYPE", ignoreCase = true)) {
+                    return@withContext Result.failure(Exception("Tracker returned HTML instead of torrent file"))
+                }
+                return@withContext Result.failure(Exception("Invalid torrent file format"))
+            }
             
             // Upload the torrent file to AllDebrid
             val requestBody = torrentBytes.toRequestBody("application/x-bittorrent".toMediaType())
@@ -212,6 +232,9 @@ class AllDebridRepository @Inject constructor(
                 checkForIpError(error?.code, error?.message)
                 Result.failure(Exception(error?.message ?: "Upload failed"))
             }
+        } catch (e: java.net.SocketTimeoutException) {
+            Log.e(TAG, "Timeout downloading torrent", e)
+            Result.failure(Exception("Timeout downloading torrent file"))
         } catch (e: Exception) {
             Log.e(TAG, "Failed to download/upload torrent", e)
             Result.failure(e)
