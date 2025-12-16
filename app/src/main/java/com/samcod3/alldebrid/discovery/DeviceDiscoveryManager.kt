@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Log
 import com.samcod3.alldebrid.data.api.KodiApi
 import com.samcod3.alldebrid.data.api.KodiCommands
+import com.samcod3.alldebrid.data.datastore.SettingsDataStore
 import com.samcod3.alldebrid.data.model.Device
 import com.samcod3.alldebrid.data.model.DeviceType
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -11,6 +12,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import java.net.DatagramPacket
@@ -24,7 +26,8 @@ import javax.inject.Singleton
 @Singleton
 class DeviceDiscoveryManager @Inject constructor(
     @ApplicationContext private val context: Context,
-    private val kodiApi: KodiApi
+    private val kodiApi: KodiApi,
+    private val settingsDataStore: SettingsDataStore
 ) {
     
     companion object {
@@ -33,15 +36,18 @@ class DeviceDiscoveryManager @Inject constructor(
         private const val SSDP_PORT = 1900
         private const val DISCOVERY_TIMEOUT = 5000L
         private const val KODI_DEFAULT_PORT = 8080
+        
+        // DLNA Ports from Chrome Extension
+        private val DLNA_PORTS = listOf(9197, 8060, 7676, 7678, 1234, 52235, 2869)
     }
     
     suspend fun discoverAll(): List<Device> = coroutineScope {
         val ssdpDevices = async { discoverSsdp() }
-        val kodiDevices = async { discoverKodi() }
+        val manualDevices = async { discoverManual() }
         
         val allDevices = mutableListOf<Device>()
         allDevices.addAll(ssdpDevices.await())
-        allDevices.addAll(kodiDevices.await())
+        allDevices.addAll(manualDevices.await())
         
         // Remove duplicates by address
         allDevices.distinctBy { it.address }
@@ -150,27 +156,49 @@ class DeviceDiscoveryManager @Inject constructor(
         return portRegex.find(location)?.groupValues?.get(1)?.toIntOrNull() ?: 80
     }
     
-    private suspend fun discoverKodi(): List<Device> = withContext(Dispatchers.IO) {
+    // Combined manual scan for Kodi and DLNA ports
+    private suspend fun discoverManual(): List<Device> = withContext(Dispatchers.IO) {
         val devices = mutableListOf<Device>()
         
-        val localIpPrefix = getLocalIpPrefix()
+        // Check if custom IP range is enabled
+        val useCustomRange = settingsDataStore.useCustomIpRange.first()
+        val customPrefix = settingsDataStore.customIpPrefix.first()
+        
+        val localIpPrefix = if (useCustomRange && customPrefix.isNotBlank()) {
+            Log.d(TAG, "Using custom IP range: $customPrefix")
+            customPrefix
+        } else {
+            getLocalIpPrefix()
+        }
+        
         if (localIpPrefix == null) {
             Log.w(TAG, "Could not determine local network prefix")
             return@withContext devices
         }
         
-        Log.d(TAG, "Scanning network: $localIpPrefix.x for Kodi devices")
+        Log.d(TAG, "Scanning network: $localIpPrefix.x for devices (Kodi & DLNA)")
         
         // Scan common IP range (1-254)
         coroutineScope {
             val scanJobs = (1..254).map { i ->
                 async {
                     val ip = "$localIpPrefix.$i"
-                    checkKodiDevice(ip)
+                    val foundDevices = mutableListOf<Device>()
+                    
+                    // 1. Check Kodi
+                    checkKodiDevice(ip)?.let { foundDevices.add(it) }
+                    
+                    // 2. Check DLNA ports if custom range is enabled (to save time in production)
+                    // If we suspect emulation or issues with multicast, manual port scan is useful.
+                    if (useCustomRange || foundDevices.isEmpty()) {
+                        checkDlnaPorts(ip)?.let { foundDevices.add(it) }
+                    }
+                    
+                    foundDevices
                 }
             }
             
-            scanJobs.awaitAll().filterNotNull().forEach { device ->
+            scanJobs.awaitAll().flatten().forEach { device ->
                 devices.add(device)
             }
         }
@@ -196,6 +224,35 @@ class DeviceDiscoveryManager @Inject constructor(
         } catch (e: Exception) {
             null
         }
+    }
+    
+    private suspend fun checkDlnaPorts(ip: String): Device? = withContext(Dispatchers.IO) {
+        for (port in DLNA_PORTS) {
+            try {
+                // Try quick socket connection first
+                val socket = java.net.Socket()
+                val address = java.net.InetSocketAddress(ip, port)
+                socket.connect(address, 200) // 200ms timeout per port
+                socket.close()
+                
+                Log.d(TAG, "Found potential DLNA port $port open at $ip")
+                
+                // If TCP connects, we assume it's a DLNA-capable device for now,
+                // or we could try to fetch description.xml.
+                // For Samsung 9197, we found it.
+                return@withContext Device(
+                    id = UUID.randomUUID().toString(),
+                    name = "DLNA Device ($ip:$port)",
+                    address = ip,
+                    port = port,
+                    type = DeviceType.DLNA,
+                    controlUrl = "http://$ip:$port/" // Basic URL, casting logic might need to probe better
+                )
+            } catch (e: Exception) {
+                // Ignore connection failure
+            }
+        }
+        null
     }
     
     private fun getLocalIpPrefix(): String? {

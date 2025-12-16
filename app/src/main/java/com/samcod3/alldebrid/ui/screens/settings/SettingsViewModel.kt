@@ -18,6 +18,8 @@ data class SettingsUiState(
     val apiKey: String = "",
     val jackettUrl: String = "",
     val jackettApiKey: String = "",
+    val useCustomIpRange: Boolean = false,
+    val customIpPrefix: String = "",
     val user: User? = null,
     val message: String? = null,
     val isLoading: Boolean = false
@@ -41,12 +43,16 @@ class SettingsViewModel @Inject constructor(
             val apiKey = settingsDataStore.apiKey.first()
             val jackettUrl = settingsDataStore.jackettUrl.first()
             val jackettApiKey = settingsDataStore.jackettApiKey.first()
+            val useCustomIpRange = settingsDataStore.useCustomIpRange.first()
+            val customIpPrefix = settingsDataStore.customIpPrefix.first()
             
             _uiState.update {
                 it.copy(
                     apiKey = apiKey,
                     jackettUrl = jackettUrl,
-                    jackettApiKey = jackettApiKey
+                    jackettApiKey = jackettApiKey,
+                    useCustomIpRange = useCustomIpRange,
+                    customIpPrefix = customIpPrefix
                 )
             }
             
@@ -68,6 +74,14 @@ class SettingsViewModel @Inject constructor(
     fun updateJackettApiKey(value: String) {
         _uiState.update { it.copy(jackettApiKey = value) }
     }
+    
+    fun updateUseCustomIpRange(value: Boolean) {
+        _uiState.update { it.copy(useCustomIpRange = value) }
+    }
+    
+    fun updateCustomIpPrefix(value: String) {
+        _uiState.update { it.copy(customIpPrefix = value) }
+    }
 
     fun saveApiKey() {
         viewModelScope.launch {
@@ -83,6 +97,16 @@ class SettingsViewModel @Inject constructor(
                 apiKey = _uiState.value.jackettApiKey
             )
             _uiState.update { it.copy(message = "Jackett configuration saved") }
+        }
+    }
+    
+    fun saveCustomIpRange() {
+        viewModelScope.launch {
+            settingsDataStore.saveCustomIpRange(
+                enabled = _uiState.value.useCustomIpRange,
+                ipPrefix = _uiState.value.customIpPrefix
+            )
+            _uiState.update { it.copy(message = "IP range saved") }
         }
     }
 

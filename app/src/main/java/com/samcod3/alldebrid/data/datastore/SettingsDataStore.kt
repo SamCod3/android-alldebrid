@@ -3,6 +3,7 @@ package com.samcod3.alldebrid.data.datastore
 import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
@@ -24,6 +25,8 @@ class SettingsDataStore @Inject constructor(
         private val JACKETT_URL = stringPreferencesKey("jackett_url")
         private val JACKETT_API_KEY = stringPreferencesKey("jackett_api_key")
         private val SELECTED_DEVICE_ID = stringPreferencesKey("selected_device_id")
+        private val USE_CUSTOM_IP_RANGE = booleanPreferencesKey("use_custom_ip_range")
+        private val CUSTOM_IP_PREFIX = stringPreferencesKey("custom_ip_prefix")
     }
     
     val apiKey: Flow<String> = context.dataStore.data.map { preferences ->
@@ -42,6 +45,14 @@ class SettingsDataStore @Inject constructor(
         preferences[SELECTED_DEVICE_ID]
     }
     
+    val useCustomIpRange: Flow<Boolean> = context.dataStore.data.map { preferences ->
+        preferences[USE_CUSTOM_IP_RANGE] ?: false
+    }
+    
+    val customIpPrefix: Flow<String> = context.dataStore.data.map { preferences ->
+        preferences[CUSTOM_IP_PREFIX] ?: ""
+    }
+    
     suspend fun saveApiKey(apiKey: String) {
         context.dataStore.edit { preferences ->
             preferences[API_KEY] = apiKey
@@ -58,6 +69,13 @@ class SettingsDataStore @Inject constructor(
     suspend fun saveSelectedDeviceId(deviceId: String) {
         context.dataStore.edit { preferences ->
             preferences[SELECTED_DEVICE_ID] = deviceId
+        }
+    }
+    
+    suspend fun saveCustomIpRange(enabled: Boolean, ipPrefix: String) {
+        context.dataStore.edit { preferences ->
+            preferences[USE_CUSTOM_IP_RANGE] = enabled
+            preferences[CUSTOM_IP_PREFIX] = ipPrefix
         }
     }
     

@@ -233,6 +233,63 @@ fun SettingsScreen(
                     }
                 }
             }
+            
+            // Custom IP Range section
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant
+                )
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Text(
+                        text = "Device Discovery (Testing)",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    
+                    Text(
+                        text = "For testing in emulator or different subnets",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("Use custom IP range")
+                        androidx.compose.material3.Switch(
+                            checked = uiState.useCustomIpRange,
+                            onCheckedChange = { viewModel.updateUseCustomIpRange(it) }
+                        )
+                    }
+                    
+                    if (uiState.useCustomIpRange) {
+                        OutlinedTextField(
+                            value = uiState.customIpPrefix,
+                            onValueChange = { viewModel.updateCustomIpPrefix(it) },
+                            label = { Text("IP Prefix (e.g., 192.168.50)") },
+                            placeholder = { Text("192.168.1") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            supportingText = { Text("Will scan x.x.x.1 to x.x.x.254") }
+                        )
+                        
+                        Button(
+                            onClick = { viewModel.saveCustomIpRange() },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Icon(Icons.Default.Check, null)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Save IP Range")
+                        }
+                    }
+                }
+            }
         }
     }
 }
