@@ -194,21 +194,30 @@ fun DownloadsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.nav_downloads)) },
+                modifier = Modifier.height(48.dp),
+                title = { 
+                    Text(
+                        stringResource(R.string.nav_downloads),
+                        style = MaterialTheme.typography.titleMedium
+                    ) 
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer,
                     titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
                 ),
                 actions = {
                     // Cast icon with device selector
-                    IconButton(onClick = { 
-                        if (uiState.discoveredDevices.isEmpty()) {
-                            // No devices - navigate to Devices tab and scan
-                            onNavigateToDevices()
-                        } else {
-                            showDeviceSelector = true
-                        }
-                    }) {
+                    IconButton(
+                        onClick = { 
+                            if (uiState.discoveredDevices.isEmpty()) {
+                                // No devices - navigate to Devices tab and scan
+                                onNavigateToDevices()
+                            } else {
+                                showDeviceSelector = true
+                            }
+                        },
+                        modifier = Modifier.size(40.dp)
+                    ) {
                         Icon(
                             imageVector = if (uiState.selectedDevice != null) 
                                 Icons.Default.CastConnected else Icons.Default.Cast,
@@ -216,7 +225,8 @@ fun DownloadsScreen(
                             tint = if (uiState.selectedDevice != null)
                                 MaterialTheme.colorScheme.primary
                             else
-                                MaterialTheme.colorScheme.onPrimaryContainer
+                                MaterialTheme.colorScheme.onPrimaryContainer,
+                            modifier = Modifier.size(20.dp)
                         )
                     }
                 }
