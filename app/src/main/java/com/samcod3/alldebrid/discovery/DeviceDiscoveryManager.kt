@@ -142,23 +142,44 @@ class DeviceDiscoveryManager @Inject constructor(
         devices
     }
     
-    private fun parseSsdpResponse(response: String, address: String): Device? {
+    private suspend fun parseSsdpResponse(response: String, address: String): Device? = withContext(Dispatchers.IO) {
         val locationRegex = Regex("LOCATION:\\s*(.+)", RegexOption.IGNORE_CASE)
         val serverRegex = Regex("SERVER:\\s*(.+)", RegexOption.IGNORE_CASE)
         
         val location = locationRegex.find(response)?.groupValues?.get(1)?.trim()
         val server = serverRegex.find(response)?.groupValues?.get(1)?.trim() ?: "Unknown Device"
         
-        return if (location != null) {
+        if (location != null) {
+            // Try to fetch friendlyName from device description
+            val friendlyName = fetchDeviceFriendlyName(location) ?: extractDeviceName(server)
+            
             Device(
                 id = UUID.randomUUID().toString(),
-                name = extractDeviceName(server),
+                name = friendlyName,
                 address = address,
                 port = extractPort(location),
                 type = DeviceType.DLNA,
                 controlUrl = location
             )
         } else null
+    }
+    
+    private suspend fun fetchDeviceFriendlyName(locationUrl: String): String? = withTimeoutOrNull(2000) {
+        try {
+            val url = java.net.URL(locationUrl)
+            val connection = url.openConnection() as java.net.HttpURLConnection
+            connection.connectTimeout = 1500
+            connection.readTimeout = 1500
+            val xml = connection.inputStream.bufferedReader().readText()
+            connection.disconnect()
+            
+            // Parse friendlyName from XML
+            val friendlyNameRegex = Regex("<friendlyName>(.+?)</friendlyName>")
+            friendlyNameRegex.find(xml)?.groupValues?.get(1)?.trim()
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to fetch device description from $locationUrl", e)
+            null
+        }
     }
     
     private fun extractDeviceName(server: String): String {
