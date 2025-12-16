@@ -83,7 +83,10 @@ data class MagnetUploadResponse(
 
 data class MagnetUploadData(
     @SerializedName("magnets")
-    val magnets: List<UploadedMagnet>
+    val magnets: List<UploadedMagnet>? = null,
+    
+    @SerializedName("files")
+    val files: List<UploadedMagnet>? = null
 )
 
 data class UploadedMagnet(
