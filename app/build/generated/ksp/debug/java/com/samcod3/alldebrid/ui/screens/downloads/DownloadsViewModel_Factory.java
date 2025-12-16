@@ -1,6 +1,7 @@
 package com.samcod3.alldebrid.ui.screens.downloads;
 
 import com.samcod3.alldebrid.data.repository.AllDebridRepository;
+import com.samcod3.alldebrid.data.repository.DeviceRepository;
 import dagger.internal.DaggerGenerated;
 import dagger.internal.Factory;
 import dagger.internal.QualifierMetadata;
@@ -26,21 +27,26 @@ import javax.inject.Provider;
 public final class DownloadsViewModel_Factory implements Factory<DownloadsViewModel> {
   private final Provider<AllDebridRepository> repositoryProvider;
 
-  public DownloadsViewModel_Factory(Provider<AllDebridRepository> repositoryProvider) {
+  private final Provider<DeviceRepository> deviceRepositoryProvider;
+
+  public DownloadsViewModel_Factory(Provider<AllDebridRepository> repositoryProvider,
+      Provider<DeviceRepository> deviceRepositoryProvider) {
     this.repositoryProvider = repositoryProvider;
+    this.deviceRepositoryProvider = deviceRepositoryProvider;
   }
 
   @Override
   public DownloadsViewModel get() {
-    return newInstance(repositoryProvider.get());
+    return newInstance(repositoryProvider.get(), deviceRepositoryProvider.get());
   }
 
-  public static DownloadsViewModel_Factory create(
-      Provider<AllDebridRepository> repositoryProvider) {
-    return new DownloadsViewModel_Factory(repositoryProvider);
+  public static DownloadsViewModel_Factory create(Provider<AllDebridRepository> repositoryProvider,
+      Provider<DeviceRepository> deviceRepositoryProvider) {
+    return new DownloadsViewModel_Factory(repositoryProvider, deviceRepositoryProvider);
   }
 
-  public static DownloadsViewModel newInstance(AllDebridRepository repository) {
-    return new DownloadsViewModel(repository);
+  public static DownloadsViewModel newInstance(AllDebridRepository repository,
+      DeviceRepository deviceRepository) {
+    return new DownloadsViewModel(repository, deviceRepository);
   }
 }
