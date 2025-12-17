@@ -138,4 +138,29 @@ class SettingsViewModel @Inject constructor(
     fun clearMessage() {
         _uiState.update { it.copy(message = null) }
     }
+    
+    /**
+     * Logout: Clear API key, user state, and WebView cookies
+     */
+    fun logout() {
+        viewModelScope.launch {
+            // Clear API key
+            settingsDataStore.saveApiKey("")
+            
+            // Clear WebView cookies
+            android.webkit.CookieManager.getInstance().apply {
+                removeAllCookies(null)
+                flush()
+            }
+            
+            // Update UI state
+            _uiState.update { 
+                it.copy(
+                    apiKey = "",
+                    user = null,
+                    message = "Logged out successfully"
+                ) 
+            }
+        }
+    }
 }

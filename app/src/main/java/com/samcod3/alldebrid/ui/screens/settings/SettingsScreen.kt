@@ -15,6 +15,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Login
+import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Button
@@ -166,6 +167,20 @@ fun SettingsScreen(
                                 text = "Connected as: ${uiState.user?.username}",
                                 style = MaterialTheme.typography.bodyMedium
                             )
+                        }
+                        
+                        // Logout button
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Button(
+                            onClick = { viewModel.logout() },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.error
+                            )
+                        ) {
+                            Icon(Icons.Default.Logout, null)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Cerrar sesión")
                         }
                     }
                 }
