@@ -32,6 +32,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -359,15 +360,24 @@ fun DownloadsScreen(
                     )
                 }
                 else -> {
-                    // Filter magnets by search query
+                    // Filter states
                     var searchFilter by remember { mutableStateOf("") }
-                    val filteredMagnets = uiState.magnets.filter { 
-                        searchFilter.isBlank() || it.filename.contains(searchFilter, ignoreCase = true)
+                    var statusFilter by remember { mutableStateOf("all") } // "all", "downloading", "ready"
+                    
+                    // Apply filters
+                    val filteredMagnets = uiState.magnets.filter { magnet ->
+                        val matchesSearch = searchFilter.isBlank() || magnet.filename.contains(searchFilter, ignoreCase = true)
+                        val matchesStatus = when (statusFilter) {
+                            "downloading" -> magnet.status != "Ready"
+                            "ready" -> magnet.status == "Ready"
+                            else -> true
+                        }
+                        matchesSearch && matchesStatus
                     }
                     
-                    // Separate into downloading and ready
-                    val downloadingMagnets = filteredMagnets.filter { it.status != "Ready" }
-                    val readyMagnets = filteredMagnets.filter { it.status == "Ready" }
+                    // Count for chips
+                    val downloadingCount = uiState.magnets.count { it.status != "Ready" }
+                    val readyCount = uiState.magnets.count { it.status == "Ready" }
                     
                     Column {
                         // Search filter
@@ -388,61 +398,54 @@ fun DownloadsScreen(
                             }
                         )
                         
+                        // Status filter chips
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 4.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            FilterChip(
+                                selected = statusFilter == "all",
+                                onClick = { statusFilter = "all" },
+                                label = { Text("Todos (${uiState.magnets.size})") }
+                            )
+                            FilterChip(
+                                selected = statusFilter == "downloading",
+                                onClick = { statusFilter = "downloading" },
+                                label = { Text("📥 ($downloadingCount)") }
+                            )
+                            FilterChip(
+                                selected = statusFilter == "ready",
+                                onClick = { statusFilter = "ready" },
+                                label = { Text("✅ ($readyCount)") }
+                            )
+                        }
+                        
                         LazyColumn(
                             contentPadding = PaddingValues(16.dp),
                             verticalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
-                            // Downloading section
-                            if (downloadingMagnets.isNotEmpty()) {
-                                item {
-                                    Text(
-                                        text = "📥 Descargando (${downloadingMagnets.size})",
-                                        style = MaterialTheme.typography.titleMedium,
-                                        color = MaterialTheme.colorScheme.tertiary,
-                                        modifier = Modifier.padding(bottom = 4.dp)
-                                    )
-                                }
-                                items(downloadingMagnets) { magnet ->
-                                    val context = LocalContext.current
-                                    DownloadCard(
-                                        magnet = magnet,
-                                        onDelete = { viewModel.deleteMagnet(magnet.id) },
-                                        onCopyLink = { link ->
-                                            viewModel.copyLinkToClipboard(context, link)
-                                        },
-                                        onPlay = { link, title -> viewModel.playLink(link, title) }
-                                    )
-                                }
-                            }
-                            
-                            // Ready section
-                            if (readyMagnets.isNotEmpty()) {
-                                item {
-                                    Text(
-                                        text = "✅ Disponibles (${readyMagnets.size})",
-                                        style = MaterialTheme.typography.titleMedium,
-                                        color = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.padding(top = if (downloadingMagnets.isNotEmpty()) 12.dp else 0.dp, bottom = 4.dp)
-                                    )
-                                }
-                                items(readyMagnets) { magnet ->
-                                    val context = LocalContext.current
-                                    DownloadCard(
-                                        magnet = magnet,
-                                        onDelete = { viewModel.deleteMagnet(magnet.id) },
-                                        onCopyLink = { link ->
-                                            viewModel.copyLinkToClipboard(context, link)
-                                        },
-                                        onPlay = { link, title -> viewModel.playLink(link, title) }
-                                    )
-                                }
+                            items(filteredMagnets) { magnet ->
+                                val context = LocalContext.current
+                                DownloadCard(
+                                    magnet = magnet,
+                                    onDelete = { viewModel.deleteMagnet(magnet.id) },
+                                    onCopyLink = { link ->
+                                        viewModel.copyLinkToClipboard(context, link)
+                                    },
+                                    onPlay = { link, title -> viewModel.playLink(link, title) }
+                                )
                             }
                             
                             // No results message
-                            if (filteredMagnets.isEmpty() && searchFilter.isNotBlank()) {
+                            if (filteredMagnets.isEmpty()) {
                                 item {
                                     Text(
-                                        text = "No se encontraron resultados para \"$searchFilter\"",
+                                        text = if (searchFilter.isNotBlank()) 
+                                            "No se encontraron resultados para \"$searchFilter\""
+                                        else 
+                                            "No hay elementos en esta categoría",
                                         style = MaterialTheme.typography.bodyMedium,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         modifier = Modifier.padding(16.dp)
