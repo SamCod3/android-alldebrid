@@ -362,7 +362,7 @@ fun DownloadsScreen(
                 else -> {
                     // Filter states
                     var searchFilter by remember { mutableStateOf("") }
-                    var statusFilter by remember { mutableStateOf("all") } // "all", "downloading", "ready"
+                    var statusFilter by remember { mutableStateOf("ready") } // Default to ready (Disponibles)
                     
                     // Apply filters
                     val filteredMagnets = uiState.magnets.filter { magnet ->

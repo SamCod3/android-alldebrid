@@ -130,16 +130,10 @@ fun AllDebridNavHost() {
                                     restoreState = true
                                 }
                             },
-                            text = { 
-                                Text(
-                                    stringResource(screen.titleResId),
-                                    style = MaterialTheme.typography.labelSmall
-                                ) 
-                            },
                             icon = {
                                 Icon(
                                     imageVector = if (selectedTabIndex == index) screen.selectedIcon else screen.unselectedIcon,
-                                    contentDescription = null
+                                    contentDescription = stringResource(screen.titleResId)
                                 )
                             }
                         )
