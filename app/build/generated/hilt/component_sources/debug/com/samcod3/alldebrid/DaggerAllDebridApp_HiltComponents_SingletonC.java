@@ -416,30 +416,30 @@ public final class DaggerAllDebridApp_HiltComponents_SingletonC {
 
     @IdentifierNameString
     private static final class LazyClassKeyProvider {
-      static String com_samcod3_alldebrid_ui_screens_downloads_DownloadsViewModel = "com.samcod3.alldebrid.ui.screens.downloads.DownloadsViewModel";
+      static String com_samcod3_alldebrid_ui_screens_settings_SettingsViewModel = "com.samcod3.alldebrid.ui.screens.settings.SettingsViewModel";
 
       static String com_samcod3_alldebrid_ui_screens_search_SearchViewModel = "com.samcod3.alldebrid.ui.screens.search.SearchViewModel";
 
-      static String com_samcod3_alldebrid_ui_screens_settings_SettingsViewModel = "com.samcod3.alldebrid.ui.screens.settings.SettingsViewModel";
+      static String com_samcod3_alldebrid_ui_screens_login_ApiKeyManagerViewModel = "com.samcod3.alldebrid.ui.screens.login.ApiKeyManagerViewModel";
 
       static String com_samcod3_alldebrid_ui_screens_devices_DevicesViewModel = "com.samcod3.alldebrid.ui.screens.devices.DevicesViewModel";
 
-      static String com_samcod3_alldebrid_ui_screens_login_ApiKeyManagerViewModel = "com.samcod3.alldebrid.ui.screens.login.ApiKeyManagerViewModel";
-
-      @KeepFieldType
-      DownloadsViewModel com_samcod3_alldebrid_ui_screens_downloads_DownloadsViewModel2;
-
-      @KeepFieldType
-      SearchViewModel com_samcod3_alldebrid_ui_screens_search_SearchViewModel2;
+      static String com_samcod3_alldebrid_ui_screens_downloads_DownloadsViewModel = "com.samcod3.alldebrid.ui.screens.downloads.DownloadsViewModel";
 
       @KeepFieldType
       SettingsViewModel com_samcod3_alldebrid_ui_screens_settings_SettingsViewModel2;
 
       @KeepFieldType
-      DevicesViewModel com_samcod3_alldebrid_ui_screens_devices_DevicesViewModel2;
+      SearchViewModel com_samcod3_alldebrid_ui_screens_search_SearchViewModel2;
 
       @KeepFieldType
       ApiKeyManagerViewModel com_samcod3_alldebrid_ui_screens_login_ApiKeyManagerViewModel2;
+
+      @KeepFieldType
+      DevicesViewModel com_samcod3_alldebrid_ui_screens_devices_DevicesViewModel2;
+
+      @KeepFieldType
+      DownloadsViewModel com_samcod3_alldebrid_ui_screens_downloads_DownloadsViewModel2;
     }
   }
 
@@ -492,30 +492,30 @@ public final class DaggerAllDebridApp_HiltComponents_SingletonC {
 
     @IdentifierNameString
     private static final class LazyClassKeyProvider {
-      static String com_samcod3_alldebrid_ui_screens_login_ApiKeyManagerViewModel = "com.samcod3.alldebrid.ui.screens.login.ApiKeyManagerViewModel";
-
-      static String com_samcod3_alldebrid_ui_screens_downloads_DownloadsViewModel = "com.samcod3.alldebrid.ui.screens.downloads.DownloadsViewModel";
+      static String com_samcod3_alldebrid_ui_screens_search_SearchViewModel = "com.samcod3.alldebrid.ui.screens.search.SearchViewModel";
 
       static String com_samcod3_alldebrid_ui_screens_devices_DevicesViewModel = "com.samcod3.alldebrid.ui.screens.devices.DevicesViewModel";
 
+      static String com_samcod3_alldebrid_ui_screens_login_ApiKeyManagerViewModel = "com.samcod3.alldebrid.ui.screens.login.ApiKeyManagerViewModel";
+
       static String com_samcod3_alldebrid_ui_screens_settings_SettingsViewModel = "com.samcod3.alldebrid.ui.screens.settings.SettingsViewModel";
 
-      static String com_samcod3_alldebrid_ui_screens_search_SearchViewModel = "com.samcod3.alldebrid.ui.screens.search.SearchViewModel";
+      static String com_samcod3_alldebrid_ui_screens_downloads_DownloadsViewModel = "com.samcod3.alldebrid.ui.screens.downloads.DownloadsViewModel";
 
       @KeepFieldType
-      ApiKeyManagerViewModel com_samcod3_alldebrid_ui_screens_login_ApiKeyManagerViewModel2;
-
-      @KeepFieldType
-      DownloadsViewModel com_samcod3_alldebrid_ui_screens_downloads_DownloadsViewModel2;
+      SearchViewModel com_samcod3_alldebrid_ui_screens_search_SearchViewModel2;
 
       @KeepFieldType
       DevicesViewModel com_samcod3_alldebrid_ui_screens_devices_DevicesViewModel2;
 
       @KeepFieldType
+      ApiKeyManagerViewModel com_samcod3_alldebrid_ui_screens_login_ApiKeyManagerViewModel2;
+
+      @KeepFieldType
       SettingsViewModel com_samcod3_alldebrid_ui_screens_settings_SettingsViewModel2;
 
       @KeepFieldType
-      SearchViewModel com_samcod3_alldebrid_ui_screens_search_SearchViewModel2;
+      DownloadsViewModel com_samcod3_alldebrid_ui_screens_downloads_DownloadsViewModel2;
     }
 
     private static final class SwitchingProvider<T> implements Provider<T> {
