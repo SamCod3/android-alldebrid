@@ -35,10 +35,34 @@ class SettingsViewModel @Inject constructor(
     val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
 
     init {
-        loadSettings()
+        refreshSettings()
+        observeApiKey()
+    }
+    
+    /**
+     * Observe API key changes from DataStore (updates when key changes in ApiKeyManager)
+     */
+    private fun observeApiKey() {
+        viewModelScope.launch {
+            settingsDataStore.apiKey.collect { newApiKey ->
+                val currentApiKey = _uiState.value.apiKey
+                if (newApiKey != currentApiKey) {
+                    _uiState.update { it.copy(apiKey = newApiKey) }
+                    // Test connection with new key
+                    if (newApiKey.isNotBlank()) {
+                        testConnection()
+                    } else {
+                        _uiState.update { it.copy(user = null) }
+                    }
+                }
+            }
+        }
     }
 
-    private fun loadSettings() {
+    /**
+     * Reload settings from datastore (call when returning from other screens)
+     */
+    fun refreshSettings() {
         viewModelScope.launch {
             val apiKey = settingsDataStore.apiKey.first()
             val jackettUrl = settingsDataStore.jackettUrl.first()
