@@ -57,7 +57,9 @@ fun SearchScreen(
         }
     }
 
-    Scaffold { paddingValues ->
+    Scaffold(
+        contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0, 0, 0, 0)
+    ) { paddingValues ->
         Box(
             modifier = Modifier
                 .fillMaxSize()

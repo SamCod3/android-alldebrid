@@ -164,6 +164,8 @@ fun DownloadCard(
                             LinearProgressIndicator(
                                 progress = { progress },
                                 modifier = Modifier.fillMaxWidth().height(8.dp),
+                                trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                                color = MaterialTheme.colorScheme.primary,
                             )
                             
                             Spacer(modifier = Modifier.height(4.dp))

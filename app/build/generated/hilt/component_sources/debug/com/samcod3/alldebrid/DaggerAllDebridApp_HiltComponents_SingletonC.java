@@ -420,9 +420,9 @@ public final class DaggerAllDebridApp_HiltComponents_SingletonC {
 
       static String com_samcod3_alldebrid_ui_screens_search_SearchViewModel = "com.samcod3.alldebrid.ui.screens.search.SearchViewModel";
 
-      static String com_samcod3_alldebrid_ui_screens_devices_DevicesViewModel = "com.samcod3.alldebrid.ui.screens.devices.DevicesViewModel";
-
       static String com_samcod3_alldebrid_ui_screens_settings_SettingsViewModel = "com.samcod3.alldebrid.ui.screens.settings.SettingsViewModel";
+
+      static String com_samcod3_alldebrid_ui_screens_devices_DevicesViewModel = "com.samcod3.alldebrid.ui.screens.devices.DevicesViewModel";
 
       static String com_samcod3_alldebrid_ui_screens_login_ApiKeyManagerViewModel = "com.samcod3.alldebrid.ui.screens.login.ApiKeyManagerViewModel";
 
@@ -433,10 +433,10 @@ public final class DaggerAllDebridApp_HiltComponents_SingletonC {
       SearchViewModel com_samcod3_alldebrid_ui_screens_search_SearchViewModel2;
 
       @KeepFieldType
-      DevicesViewModel com_samcod3_alldebrid_ui_screens_devices_DevicesViewModel2;
+      SettingsViewModel com_samcod3_alldebrid_ui_screens_settings_SettingsViewModel2;
 
       @KeepFieldType
-      SettingsViewModel com_samcod3_alldebrid_ui_screens_settings_SettingsViewModel2;
+      DevicesViewModel com_samcod3_alldebrid_ui_screens_devices_DevicesViewModel2;
 
       @KeepFieldType
       ApiKeyManagerViewModel com_samcod3_alldebrid_ui_screens_login_ApiKeyManagerViewModel2;
@@ -496,9 +496,9 @@ public final class DaggerAllDebridApp_HiltComponents_SingletonC {
 
       static String com_samcod3_alldebrid_ui_screens_downloads_DownloadsViewModel = "com.samcod3.alldebrid.ui.screens.downloads.DownloadsViewModel";
 
-      static String com_samcod3_alldebrid_ui_screens_settings_SettingsViewModel = "com.samcod3.alldebrid.ui.screens.settings.SettingsViewModel";
-
       static String com_samcod3_alldebrid_ui_screens_devices_DevicesViewModel = "com.samcod3.alldebrid.ui.screens.devices.DevicesViewModel";
+
+      static String com_samcod3_alldebrid_ui_screens_settings_SettingsViewModel = "com.samcod3.alldebrid.ui.screens.settings.SettingsViewModel";
 
       static String com_samcod3_alldebrid_ui_screens_search_SearchViewModel = "com.samcod3.alldebrid.ui.screens.search.SearchViewModel";
 
@@ -509,10 +509,10 @@ public final class DaggerAllDebridApp_HiltComponents_SingletonC {
       DownloadsViewModel com_samcod3_alldebrid_ui_screens_downloads_DownloadsViewModel2;
 
       @KeepFieldType
-      SettingsViewModel com_samcod3_alldebrid_ui_screens_settings_SettingsViewModel2;
+      DevicesViewModel com_samcod3_alldebrid_ui_screens_devices_DevicesViewModel2;
 
       @KeepFieldType
-      DevicesViewModel com_samcod3_alldebrid_ui_screens_devices_DevicesViewModel2;
+      SettingsViewModel com_samcod3_alldebrid_ui_screens_settings_SettingsViewModel2;
 
       @KeepFieldType
       SearchViewModel com_samcod3_alldebrid_ui_screens_search_SearchViewModel2;
