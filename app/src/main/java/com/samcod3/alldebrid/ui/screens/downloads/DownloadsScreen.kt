@@ -434,7 +434,8 @@ fun DownloadsScreen(
                                     onCopyLink = { link ->
                                         viewModel.copyLinkToClipboard(context, link)
                                     },
-                                    onPlay = { link, title -> viewModel.playLink(link, title) }
+                                    onPlay = { link, title -> viewModel.playLink(link, title) },
+                                    refreshCallback = { viewModel.refreshSilent() }
                                 )
                             }
                             

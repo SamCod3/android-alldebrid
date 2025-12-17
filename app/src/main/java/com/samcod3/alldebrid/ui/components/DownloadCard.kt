@@ -65,6 +65,7 @@ fun DownloadCard(
     onDelete: () -> Unit,
     onCopyLink: (String) -> Unit,
     onPlay: (link: String, title: String) -> Unit,
+    refreshCallback: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     var showBottomSheet by remember { mutableStateOf(false) }
@@ -104,11 +105,89 @@ fun DownloadCard(
                     overflow = TextOverflow.Ellipsis
                 )
                 Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "${formatSize(magnet.size)} • ${magnet.links.size} files",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                // Progress Header for Downloading items
+                if (magnet.status != "Ready") {
+                    // Auto-refresh every 10 seconds while sheet is open
+                    androidx.compose.runtime.LaunchedEffect(Unit) {
+                        while(true) {
+                            kotlinx.coroutines.delay(10000)
+                            refreshCallback?.invoke()
+                        }
+                    }
+
+                    Card(
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = magnet.status,
+                                    style = MaterialTheme.typography.titleSmall,
+                                    color = statusColor
+                                )
+                                Text(
+                                    text = "${magnet.seeders} seeders",
+                                    style = MaterialTheme.typography.labelSmall
+                                )
+                            }
+                            
+                            Spacer(modifier = Modifier.height(8.dp))
+                            
+                            // Calculate progress
+                            val progress = if (magnet.size > 0) magnet.downloaded.toFloat() / magnet.size.toFloat() else 0f
+                            val progressPercent = (progress * 100).toInt()
+                            
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(
+                                    text = "$progressPercent%",
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                                Text(
+                                    text = "${formatSize(magnet.downloadSpeed)}/s",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                            
+                            Spacer(modifier = Modifier.height(4.dp))
+                            
+                            LinearProgressIndicator(
+                                progress = { progress },
+                                modifier = Modifier.fillMaxWidth().height(8.dp),
+                            )
+                            
+                            Spacer(modifier = Modifier.height(4.dp))
+                            
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(
+                                    text = "${formatSize(magnet.downloaded)} / ${formatSize(magnet.size)}",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+                } else {
+                    Text(
+                        text = "${formatSize(magnet.size)} • ${magnet.links.size} files",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
                 
                 Spacer(modifier = Modifier.height(16.dp))
                 HorizontalDivider()

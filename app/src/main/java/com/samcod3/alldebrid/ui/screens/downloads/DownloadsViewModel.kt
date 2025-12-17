@@ -98,6 +98,20 @@ class DownloadsViewModel @Inject constructor(
                 }
         }
     }
+    
+    fun refreshSilent() {
+        viewModelScope.launch {
+            // Don't set isLoading = true
+            repository.getMagnets()
+                .onSuccess { magnets ->
+                    _uiState.update { it.copy(magnets = magnets) }
+                }
+                .onFailure { error ->
+                    // Silently ignore or log error
+                    // handleError(error) 
+                }
+        }
+    }
 
     fun deleteMagnet(id: Long) {
         viewModelScope.launch {

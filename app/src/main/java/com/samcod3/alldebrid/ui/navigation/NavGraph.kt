@@ -2,8 +2,11 @@ package com.samcod3.alldebrid.ui.navigation
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.ui.unit.dp
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Devices
 import androidx.compose.material.icons.filled.Download
@@ -22,6 +25,7 @@ import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -110,13 +114,21 @@ fun AllDebridNavHost() {
     Scaffold(
         topBar = {
             if (showTopBar) {
+                // Compact TabRow
                 TabRow(
                     selectedTabIndex = selectedTabIndex,
                     containerColor = MaterialTheme.colorScheme.primaryContainer,
                     contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .statusBarsPadding()
+                    modifier = Modifier.fillMaxWidth().height(48.dp),
+                    indicator = { tabPositions ->
+                        if (selectedTabIndex < tabPositions.size) {
+                            androidx.compose.material3.TabRowDefaults.SecondaryIndicator(
+                                modifier = Modifier.tabIndicatorOffset(tabPositions[selectedTabIndex]),
+                                height = 3.dp,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                        }
+                    }
                 ) {
                     bottomNavItems.forEachIndexed { index, screen ->
                         Tab(
@@ -133,9 +145,11 @@ fun AllDebridNavHost() {
                             icon = {
                                 Icon(
                                     imageVector = if (selectedTabIndex == index) screen.selectedIcon else screen.unselectedIcon,
-                                    contentDescription = stringResource(screen.titleResId)
+                                    contentDescription = stringResource(screen.titleResId),
+                                    modifier = Modifier.size(24.dp)
                                 )
-                            }
+                            },
+                            modifier = Modifier.height(48.dp)
                         )
                     }
                 }
