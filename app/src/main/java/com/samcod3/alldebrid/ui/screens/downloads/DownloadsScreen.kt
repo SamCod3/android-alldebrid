@@ -91,21 +91,34 @@ fun DownloadsScreen(
     }
     
     // Show Device Selection Required dialog
-    if (uiState.error?.contains("No device selected") == true) {
+    if (uiState.showNoDeviceDialog) {
         AlertDialog(
-            onDismissRequest = { viewModel.clearMessage() },
+            onDismissRequest = { viewModel.dismissNoDeviceDialog() },
+            icon = { Icon(Icons.Default.Cast, null) },
             title = { Text("No Device Selected") },
-            text = { Text("Please select a device to cast media to.") },
+            text = { 
+                Column {
+                    Text("Please select a device to cast media to.")
+                    if (uiState.discoveredDevices.isEmpty()) {
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            "No devices found. Go to Devices tab to discover devices on your network.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            },
             confirmButton = {
                 Button(onClick = {
-                    viewModel.clearMessage()
+                    viewModel.dismissNoDeviceDialog()
                     onNavigateToDevices()
                 }) {
-                    Text("Select Device")
+                    Text(if (uiState.discoveredDevices.isEmpty()) "Discover Devices" else "Select Device")
                 }
             },
             dismissButton = {
-                TextButton(onClick = { viewModel.clearMessage() }) {
+                TextButton(onClick = { viewModel.dismissNoDeviceDialog() }) {
                     Text("Cancel")
                 }
             }
@@ -275,7 +288,7 @@ fun DownloadsScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                    .padding(horizontal = 16.dp, vertical = 4.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {

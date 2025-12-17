@@ -32,6 +32,7 @@ data class DownloadsUiState(
     val castingMessage: String? = null,
     val showKodiQueueDialog: Boolean = false,
     val showDlnaQueueDialog: Boolean = false,
+    val showNoDeviceDialog: Boolean = false,
     val pendingCastLink: String? = null,
     val pendingCastTitle: String? = null,
     val dlnaQueue: List<DlnaQueueItem> = emptyList()
@@ -151,8 +152,13 @@ class DownloadsViewModel @Inject constructor(
                 }
             }
         } else {
-            _uiState.update { it.copy(error = "No device selected. Please select a device in Devices tab.") }
+            // No device selected - show dialog to help user
+            _uiState.update { it.copy(showNoDeviceDialog = true, pendingCastLink = link, pendingCastTitle = title) }
         }
+    }
+    
+    fun dismissNoDeviceDialog() {
+        _uiState.update { it.copy(showNoDeviceDialog = false) }
     }
     
     fun dismissKodiQueueDialog() {

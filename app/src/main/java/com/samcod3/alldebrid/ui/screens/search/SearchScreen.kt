@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Card
@@ -28,7 +30,10 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.samcod3.alldebrid.R
@@ -40,6 +45,17 @@ fun SearchScreen(
     viewModel: SearchViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val focusManager = LocalFocusManager.current
+    
+    // Function to execute search and hide keyboard
+    val executeSearch: () -> Unit = {
+        if (uiState.query.isNotBlank()) {
+            keyboardController?.hide()
+            focusManager.clearFocus()
+            viewModel.search()
+        }
+    }
 
     Scaffold { paddingValues ->
         Box(
@@ -57,12 +73,14 @@ fun SearchScreen(
                     placeholder = { Text(stringResource(R.string.search_hint)) },
                     trailingIcon = {
                         IconButton(
-                            onClick = { viewModel.search() },
+                            onClick = executeSearch,
                             enabled = uiState.query.isNotBlank()
                         ) {
                             Icon(Icons.Default.Search, contentDescription = null)
                         }
                     },
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                    keyboardActions = KeyboardActions(onSearch = { executeSearch() }),
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(16.dp),
