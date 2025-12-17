@@ -274,6 +274,10 @@ private fun WebViewContent(
 class ApiKeyExtractor(private val onKeyFound: (String) -> Unit) {
     @JavascriptInterface
     fun onApiKeyFound(apiKey: String) {
-        onKeyFound(apiKey)
+        // JavascriptInterface runs on WebView thread, but navigation must be on main thread
+        android.os.Handler(android.os.Looper.getMainLooper()).post {
+            onKeyFound(apiKey)
+        }
     }
 }
+

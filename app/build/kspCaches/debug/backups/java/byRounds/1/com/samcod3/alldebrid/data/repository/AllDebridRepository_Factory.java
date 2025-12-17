@@ -8,6 +8,7 @@ import dagger.internal.QualifierMetadata;
 import dagger.internal.ScopeMetadata;
 import javax.annotation.processing.Generated;
 import javax.inject.Provider;
+import okhttp3.OkHttpClient;
 
 @ScopeMetadata("javax.inject.Singleton")
 @QualifierMetadata
@@ -29,24 +30,29 @@ public final class AllDebridRepository_Factory implements Factory<AllDebridRepos
 
   private final Provider<SettingsDataStore> settingsDataStoreProvider;
 
+  private final Provider<OkHttpClient> httpClientProvider;
+
   public AllDebridRepository_Factory(Provider<AllDebridApi> apiProvider,
-      Provider<SettingsDataStore> settingsDataStoreProvider) {
+      Provider<SettingsDataStore> settingsDataStoreProvider,
+      Provider<OkHttpClient> httpClientProvider) {
     this.apiProvider = apiProvider;
     this.settingsDataStoreProvider = settingsDataStoreProvider;
+    this.httpClientProvider = httpClientProvider;
   }
 
   @Override
   public AllDebridRepository get() {
-    return newInstance(apiProvider.get(), settingsDataStoreProvider.get());
+    return newInstance(apiProvider.get(), settingsDataStoreProvider.get(), httpClientProvider.get());
   }
 
   public static AllDebridRepository_Factory create(Provider<AllDebridApi> apiProvider,
-      Provider<SettingsDataStore> settingsDataStoreProvider) {
-    return new AllDebridRepository_Factory(apiProvider, settingsDataStoreProvider);
+      Provider<SettingsDataStore> settingsDataStoreProvider,
+      Provider<OkHttpClient> httpClientProvider) {
+    return new AllDebridRepository_Factory(apiProvider, settingsDataStoreProvider, httpClientProvider);
   }
 
   public static AllDebridRepository newInstance(AllDebridApi api,
-      SettingsDataStore settingsDataStore) {
-    return new AllDebridRepository(api, settingsDataStore);
+      SettingsDataStore settingsDataStore, OkHttpClient httpClient) {
+    return new AllDebridRepository(api, settingsDataStore, httpClient);
   }
 }
