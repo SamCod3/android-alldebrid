@@ -114,43 +114,58 @@ fun AllDebridNavHost() {
     Scaffold(
         topBar = {
             if (showTopBar) {
-                // Compact TabRow
-                TabRow(
-                    selectedTabIndex = selectedTabIndex,
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                    modifier = Modifier.fillMaxWidth().height(48.dp),
-                    indicator = { tabPositions ->
-                        if (selectedTabIndex < tabPositions.size) {
-                            androidx.compose.material3.TabRowDefaults.SecondaryIndicator(
-                                modifier = Modifier.tabIndicatorOffset(tabPositions[selectedTabIndex]),
-                                height = 3.dp,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer
-                            )
-                        }
-                    }
+                // Container for Status Bar + TabRow
+                androidx.compose.material3.Surface(
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    bottomNavItems.forEachIndexed { index, screen ->
-                        Tab(
-                            selected = selectedTabIndex == index,
-                            onClick = {
-                                navController.navigate(screen.route) {
-                                    popUpTo(navController.graph.findStartDestination().id) {
-                                        saveState = true
-                                    }
-                                    launchSingleTop = true
-                                    restoreState = true
-                                }
-                            },
-                            icon = {
-                                Icon(
-                                    imageVector = if (selectedTabIndex == index) screen.selectedIcon else screen.unselectedIcon,
-                                    contentDescription = stringResource(screen.titleResId),
-                                    modifier = Modifier.size(24.dp)
-                                )
-                            },
-                            modifier = Modifier.height(48.dp)
+                    Column {
+                        // Spacer for status bar
+                        androidx.compose.foundation.layout.Spacer(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .statusBarsPadding()
                         )
+                        
+                        // Compact TabRow
+                        TabRow(
+                            selectedTabIndex = selectedTabIndex,
+                            containerColor = MaterialTheme.colorScheme.primaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                            modifier = Modifier.fillMaxWidth().height(48.dp),
+                            indicator = { tabPositions ->
+                                if (selectedTabIndex < tabPositions.size) {
+                                    androidx.compose.material3.TabRowDefaults.SecondaryIndicator(
+                                        modifier = Modifier.tabIndicatorOffset(tabPositions[selectedTabIndex]),
+                                        height = 3.dp,
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                                    )
+                                }
+                            }
+                        ) {
+                            bottomNavItems.forEachIndexed { index, screen ->
+                                Tab(
+                                    selected = selectedTabIndex == index,
+                                    onClick = {
+                                        navController.navigate(screen.route) {
+                                            popUpTo(navController.graph.findStartDestination().id) {
+                                                saveState = true
+                                            }
+                                            launchSingleTop = true
+                                            restoreState = true
+                                        }
+                                    },
+                                    icon = {
+                                        Icon(
+                                            imageVector = if (selectedTabIndex == index) screen.selectedIcon else screen.unselectedIcon,
+                                            contentDescription = stringResource(screen.titleResId),
+                                            modifier = Modifier.size(24.dp)
+                                        )
+                                    },
+                                    modifier = Modifier.height(48.dp)
+                                )
+                            }
+                        }
                     }
                 }
             }

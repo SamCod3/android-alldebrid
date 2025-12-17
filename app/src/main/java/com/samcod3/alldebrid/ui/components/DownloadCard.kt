@@ -266,7 +266,7 @@ fun DownloadCard(
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .clickable(enabled = magnet.links.isNotEmpty()) { showBottomSheet = true },
+            .clickable(enabled = magnet.links.isNotEmpty() || magnet.status != "Ready") { showBottomSheet = true },
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant
         )
