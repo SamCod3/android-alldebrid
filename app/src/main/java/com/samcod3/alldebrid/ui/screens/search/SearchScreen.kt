@@ -1,6 +1,8 @@
 package com.samcod3.alldebrid.ui.screens.search
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -58,7 +60,7 @@ fun SearchScreen(
     }
 
     Scaffold(
-        contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0, 0, 0, 0)
+        contentWindowInsets = androidx.compose.foundation.layout.WindowInsets.Companion.navigationBars
     ) { paddingValues ->
         Box(
             modifier = Modifier
@@ -86,6 +88,7 @@ fun SearchScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(16.dp),
+                    shape = MaterialTheme.shapes.medium, // Less rounded (16dp)
                     singleLine = true
                 )
                 
@@ -137,7 +140,8 @@ fun SearchScreen(
                         .padding(16.dp),
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.primaryContainer
-                    )
+                    ),
+                    shape = MaterialTheme.shapes.medium
                 ) {
                     Text(
                         text = message,

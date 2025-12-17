@@ -35,7 +35,8 @@ data class DownloadsUiState(
     val showNoDeviceDialog: Boolean = false,
     val pendingCastLink: String? = null,
     val pendingCastTitle: String? = null,
-    val dlnaQueue: List<DlnaQueueItem> = emptyList()
+    val dlnaQueue: List<DlnaQueueItem> = emptyList(),
+    val isPlaying: Boolean = false // Track if currently playing
 )
 
 @HiltViewModel
@@ -230,8 +231,65 @@ class DownloadsViewModel @Inject constructor(
         deviceRepository.dlnaQueue.clearQueue()
     }
     
+    // Playback Controls (works for both Kodi and DLNA)
+    fun stopPlayback() {
+        val device = _uiState.value.selectedDevice ?: return
+        viewModelScope.launch {
+            val result = when (device.type) {
+                com.samcod3.alldebrid.data.model.DeviceType.DLNA -> deviceRepository.stopDlna(device)
+                com.samcod3.alldebrid.data.model.DeviceType.KODI -> deviceRepository.stopKodi(device)
+            }
+            result
+                .onSuccess { 
+                    _uiState.update { it.copy(castingMessage = "Stopped", isPlaying = false) }
+                }
+                .onFailure { 
+                    _uiState.update { it.copy(error = "Stop failed") } 
+                }
+            scheduleMessageClear()
+        }
+    }
+    
+    fun pausePlayback() {
+        val device = _uiState.value.selectedDevice ?: return
+        viewModelScope.launch {
+            val result = when (device.type) {
+                com.samcod3.alldebrid.data.model.DeviceType.DLNA -> deviceRepository.pauseDlna(device)
+                com.samcod3.alldebrid.data.model.DeviceType.KODI -> deviceRepository.pauseKodi(device)
+            }
+            result
+                .onSuccess { 
+                    _uiState.update { it.copy(castingMessage = "Paused") }
+                }
+                .onFailure { 
+                    _uiState.update { it.copy(error = "Pause failed") } 
+                }
+            scheduleMessageClear()
+        }
+    }
+    
+    fun resumePlayback() {
+        val device = _uiState.value.selectedDevice ?: return
+        viewModelScope.launch {
+            // For Kodi, pause toggles play/pause, for DLNA use resume
+            val result = when (device.type) {
+                com.samcod3.alldebrid.data.model.DeviceType.DLNA -> deviceRepository.resumeDlna(device)
+                com.samcod3.alldebrid.data.model.DeviceType.KODI -> deviceRepository.pauseKodi(device) // Toggle play/pause
+            }
+            result
+                .onSuccess { 
+                    _uiState.update { it.copy(castingMessage = "Playing", isPlaying = true) }
+                }
+                .onFailure { 
+                    _uiState.update { it.copy(error = "Resume failed") } 
+                }
+            scheduleMessageClear()
+        }
+    }
+    
     private fun castLink(link: String, device: Device, addToQueue: Boolean, title: String = "Video") {
         viewModelScope.launch {
+            val cleanedTitle = cleanTitle(title)
             _uiState.update { it.copy(castingMessage = "Unlocking link...") }
             
             repository.unlockLink(link)
@@ -239,10 +297,10 @@ class DownloadsViewModel @Inject constructor(
                     val action = if (addToQueue) "Adding to queue..." else "Casting to ${device.name}..."
                     _uiState.update { it.copy(castingMessage = action) }
                     
-                    deviceRepository.castToDevice(device, unlockedLink.link, addToQueue, title)
+                    deviceRepository.castToDevice(device, unlockedLink.link, addToQueue, cleanedTitle)
                         .onSuccess {
                              val message = if (addToQueue) "Added to queue!" else "Casting started!"
-                             _uiState.update { it.copy(castingMessage = message, error = null) }
+                             _uiState.update { it.copy(castingMessage = message, error = null, isPlaying = !addToQueue) }
                              scheduleMessageClear()
                         }
                         .onFailure { error ->
@@ -254,6 +312,34 @@ class DownloadsViewModel @Inject constructor(
                     _uiState.update { it.copy(castingMessage = null) }
                 }
         }
+    }
+
+    private fun cleanTitle(originalTitle: String): String {
+        // 1. Remove extension
+        var title = originalTitle.substringBeforeLast('.')
+        
+        // 2. Remove URL phrases
+        val urlRegex = Regex("(?i)(www\\.[\\w-]+\\.[a-z]+|\\.com|\\.org|\\.net)")
+        title = title.replace(urlRegex, "")
+
+        // 3. Remove Video/Audio quality & formats (with word boundaries)
+        val formatRegex = Regex("""(?i)\b(1080p|720p|480p|2160p|4k|uhd|fhd|hd|sd|bluray|blu-ray|bdrip|brrip|web-dl|webdl|webrip|hdtv|dvdrip|dvdscr|hdcam|cam|ts|tc|h\.?264|x\.?264|h\.?265|x\.?265|hevc|avc|av1|aac|ac3|eac3|dts|dts-hd|dolby|atmos|truehd|hdr|hdr10|hdr10\+|sdr|10bit|8bit|proper|repack|remux|extended|unrated|directors\.?cut|multi|dual|latino|castellano|spanish|english|subbed|dubbed)\b""")
+        title = title.replace(formatRegex, "")
+        
+        // 3b. Also remove concatenated format strings (no word boundaries) like "4kremux2160"
+        val concatenatedRegex = Regex("""(?i)(2160p?|1080p?|720p?|480p?|4k|remux|bluray|webrip|webdl|hevc|x265|x264|hdr|uhd|aac|dts|ac3)""")
+        title = title.replace(concatenatedRegex, "")
+
+        // 4. Replace dots with spaces
+        title = title.replace(".", " ")
+        
+        // Remove residual brackets [] ()
+        title = title.replace(Regex("[\\[\\]\\(\\)]"), "")
+
+        // 5. Trim whitespace and extra spaces
+        title = title.replace(Regex("\\s+"), " ").trim()
+
+        return title.ifBlank { originalTitle } // Fallback
     }
     
     // Fallback for non-media files or when explicitly requested

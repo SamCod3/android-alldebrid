@@ -4,28 +4,38 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Cast
-import androidx.compose.material.icons.filled.CastConnected
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.rounded.Cast
+import androidx.compose.material.icons.rounded.CastConnected
+import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.Downloading
+import androidx.compose.material.icons.rounded.List
+import androidx.compose.material.icons.rounded.Pause
+import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material.icons.rounded.Refresh
+import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material.icons.rounded.Stop
+import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -72,7 +82,7 @@ fun DownloadsScreen(
     if (uiState.requiresIpAuthorization) {
         AlertDialog(
             onDismissRequest = { viewModel.clearIpAuthorizationFlag() },
-            icon = { Icon(Icons.Default.Warning, null, tint = MaterialTheme.colorScheme.error) },
+            icon = { Icon(Icons.Rounded.Warning, null, tint = MaterialTheme.colorScheme.error) },
             title = { Text("IP Authorization Required") },
             text = { 
                 Text("AllDebrid has detected a new IP address (VPN?). You need to authorize this IP to continue using the service.")
@@ -97,7 +107,7 @@ fun DownloadsScreen(
     if (uiState.showNoDeviceDialog) {
         AlertDialog(
             onDismissRequest = { viewModel.dismissNoDeviceDialog() },
-            icon = { Icon(Icons.Default.Cast, null) },
+            icon = { Icon(Icons.Rounded.Cast, null) },
             title = { Text("No Device Selected") },
             text = { 
                 Column {
@@ -132,7 +142,7 @@ fun DownloadsScreen(
     if (uiState.showKodiQueueDialog) {
         AlertDialog(
             onDismissRequest = { viewModel.dismissKodiQueueDialog() },
-            icon = { Icon(Icons.Default.PlayArrow, null) },
+            icon = { Icon(Icons.Rounded.PlayArrow, null) },
             title = { Text("Kodi is Playing") },
             text = { Text("Kodi is currently playing content. Do you want to play this now or add it to the queue?") },
             confirmButton = {
@@ -152,7 +162,7 @@ fun DownloadsScreen(
     if (uiState.showDlnaQueueDialog) {
         AlertDialog(
             onDismissRequest = { viewModel.dismissDlnaQueueDialog() },
-            icon = { Icon(Icons.Default.Cast, null) },
+            icon = { Icon(Icons.Rounded.Cast, null) },
             title = { Text("Queue has items") },
             text = { 
                 Column {
@@ -180,7 +190,7 @@ fun DownloadsScreen(
     if (showDeviceSelector) {
         AlertDialog(
             onDismissRequest = { showDeviceSelector = false },
-            icon = { Icon(Icons.Default.Cast, null) },
+            icon = { Icon(Icons.Rounded.Cast, null) },
             title = { Text("Select Device") },
             text = {
                 Column {
@@ -256,7 +266,7 @@ fun DownloadsScreen(
                     showDeviceSelector = false
                     onNavigateToDevices()
                 }) {
-                    Icon(Icons.Default.Search, null, Modifier.size(18.dp))
+                    Icon(Icons.Rounded.Search, null, Modifier.size(18.dp))
                     Spacer(Modifier.width(4.dp))
                     Text("Discover")
                 }
@@ -270,14 +280,14 @@ fun DownloadsScreen(
     }
 
     Scaffold(
-        contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0, 0, 0, 0),
+        contentWindowInsets = WindowInsets.navigationBars,
         floatingActionButton = {
             FloatingActionButton(
                 onClick = { viewModel.refresh() },
                 containerColor = MaterialTheme.colorScheme.primary
             ) {
                 Icon(
-                    imageVector = Icons.Default.Refresh,
+                    imageVector = Icons.Rounded.Refresh,
                     contentDescription = stringResource(R.string.downloads_refresh)
                 )
             }
@@ -288,7 +298,7 @@ fun DownloadsScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            // Cast device row
+            // Cast control bar - compact with playback controls when playing
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -296,20 +306,68 @@ fun DownloadsScreen(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Show device name if selected
-                uiState.selectedDevice?.let { device ->
-                    Text(
-                        text = "📺 ${device.displayName}",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                } ?: Text(
-                    text = "No device",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                // Device name (show when connected) + Playback controls (only when playing)
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    // Device name with ellipsis
+                    if (uiState.selectedDevice != null) {
+                        Text(
+                            text = uiState.selectedDevice?.displayName ?: "",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.primary,
+                            maxLines = 1,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                            modifier = Modifier.widthIn(max = 150.dp)
+                        )
+                    }
+                    
+                    // Playback controls (only show when actively playing)
+                    if (uiState.isPlaying && uiState.selectedDevice != null) {
+                        // Stop button
+                        IconButton(
+                            onClick = { viewModel.stopPlayback() },
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.Stop,
+                                contentDescription = "Stop",
+                                modifier = Modifier.size(18.dp),
+                                tint = MaterialTheme.colorScheme.error
+                            )
+                        }
+                        
+                        // Pause button
+                        IconButton(
+                            onClick = { viewModel.pausePlayback() },
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.Pause,
+                                contentDescription = "Pause",
+                                modifier = Modifier.size(18.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        
+                        // Play/Resume button
+                        IconButton(
+                            onClick = { viewModel.resumePlayback() },
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.PlayArrow,
+                                contentDescription = "Play",
+                                modifier = Modifier.size(18.dp),
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
+                }
                 
-                // Cast icon with device selector
+                // Cast icon (always visible) - shows connected/disconnected state
                 IconButton(
                     onClick = { 
                         if (uiState.discoveredDevices.isEmpty()) {
@@ -321,7 +379,7 @@ fun DownloadsScreen(
                 ) {
                     Icon(
                         imageVector = if (uiState.selectedDevice != null) 
-                            Icons.Default.CastConnected else Icons.Default.Cast,
+                            Icons.Rounded.CastConnected else Icons.Rounded.Cast,
                         contentDescription = "Cast",
                         tint = if (uiState.selectedDevice != null)
                             MaterialTheme.colorScheme.primary
@@ -389,11 +447,12 @@ fun DownloadsScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(horizontal = 16.dp, vertical = 4.dp),
+                            shape = MaterialTheme.shapes.medium, // Less rounded (16dp)
                             singleLine = true,
                             trailingIcon = {
                                 if (searchFilter.isNotBlank()) {
                                     IconButton(onClick = { searchFilter = "" }) {
-                                        Icon(Icons.Default.Close, "Clear")
+                                        Icon(Icons.Rounded.Close, "Clear")
                                     }
                                 }
                             }
@@ -403,23 +462,42 @@ fun DownloadsScreen(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 4.dp),
+                                .padding(horizontal = 16.dp, vertical = 4.dp)
+                                .horizontalScroll(rememberScrollState()), // Fix: Horizontal scroll to prevent wrapping
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             FilterChip(
                                 selected = statusFilter == "ready",
                                 onClick = { statusFilter = "ready" },
-                                label = { Text("✅ ($readyCount)") }
+                                label = { Text("Downloaded ($readyCount)", style = MaterialTheme.typography.bodySmall) },
+                                leadingIcon = { 
+                                    if (statusFilter == "ready") {
+                                        Icon(Icons.Rounded.CheckCircle, null, modifier = Modifier.size(16.dp))
+                                    }
+                                },
+                                modifier = Modifier.height(32.dp) // Compact height
                             )
                             FilterChip(
                                 selected = statusFilter == "downloading",
                                 onClick = { statusFilter = "downloading" },
-                                label = { Text("📥 ($downloadingCount)") }
+                                label = { Text("Downloading ($downloadingCount)", style = MaterialTheme.typography.bodySmall) },
+                                leadingIcon = {
+                                    if (statusFilter == "downloading") {
+                                        Icon(Icons.Rounded.Downloading, null, modifier = Modifier.size(16.dp))
+                                    }
+                                },
+                                modifier = Modifier.height(32.dp) // Compact height
                             )
                             FilterChip(
                                 selected = statusFilter == "all",
                                 onClick = { statusFilter = "all" },
-                                label = { Text("Todos (${uiState.magnets.size})") }
+                                label = { Text("All", style = MaterialTheme.typography.bodySmall) },
+                                leadingIcon = {
+                                    if (statusFilter == "all") {
+                                         Icon(Icons.Rounded.List, null, modifier = Modifier.size(16.dp))
+                                    }
+                                },
+                                modifier = Modifier.height(32.dp) // Compact height
                             )
                         }
                         

@@ -147,7 +147,7 @@ class DeviceRepository @Inject constructor(
                         Result.success(Unit)
                     } else {
                         // Play immediately
-                        castToDlna(device, url)
+                        castToDlna(device, url, title)
                     }
                 }
             }
@@ -161,7 +161,7 @@ class DeviceRepository @Inject constructor(
      */
     suspend fun playNextInDlnaQueue(device: Device): Result<Unit> {
         val nextItem = dlnaQueue.popNext() ?: return Result.failure(Exception("Queue is empty"))
-        return castToDlna(device, nextItem.url)
+        return castToDlna(device, nextItem.url, nextItem.title)
     }
     
     suspend fun checkKodiPlaying(device: Device): Result<Boolean> {
@@ -202,7 +202,28 @@ class DeviceRepository @Inject constructor(
         }
     }
     
-    private suspend fun castToDlna(device: Device, videoUrl: String): Result<Unit> = withContext(Dispatchers.IO) {
+    // Kodi Playback Controls
+    suspend fun stopKodi(device: Device): Result<Unit> {
+        return try {
+            val kodiUrl = "${device.fullAddress}/jsonrpc"
+            val response = kodiApi.sendCommand(kodiUrl, KodiCommands.stop())
+            if (response.isSuccessful) Result.success(Unit) else Result.failure(Exception("Stop failed"))
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+    
+    suspend fun pauseKodi(device: Device): Result<Unit> {
+        return try {
+            val kodiUrl = "${device.fullAddress}/jsonrpc"
+            val response = kodiApi.sendCommand(kodiUrl, KodiCommands.pause())
+            if (response.isSuccessful) Result.success(Unit) else Result.failure(Exception("Pause failed"))
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+    
+    private suspend fun castToDlna(device: Device, videoUrl: String, title: String = "Video"): Result<Unit> = withContext(Dispatchers.IO) {
         // Try multiple common DLNA endpoints - AVTransport1 is the correct one for Samsung
         val possibleEndpoints = listOf(
             "http://${device.address}:${device.port}/upnp/control/AVTransport1", // Samsung/LG - CORRECT
@@ -218,8 +239,14 @@ class DeviceRepository @Inject constructor(
             try {
                 android.util.Log.d("DLNA_CAST", "Trying endpoint: $endpoint")
                 
-                // Escape special XML characters in URL
+                // Escape special XML characters in URL and title
                 val escapedUrl = videoUrl
+                    .replace("&", "&amp;")
+                    .replace("<", "&lt;")
+                    .replace(">", "&gt;")
+                    .replace("\"", "&quot;")
+                
+                val escapedTitle = title
                     .replace("&", "&amp;")
                     .replace("<", "&lt;")
                     .replace(">", "&gt;")
@@ -235,7 +262,7 @@ class DeviceRepository @Inject constructor(
                 }
                 
                 // DIDL-Lite metadata required by Samsung TVs (error 714 = Illegal MIME-type)
-                val didlMetadata = """&lt;DIDL-Lite xmlns=&quot;urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/&quot; xmlns:dc=&quot;http://purl.org/dc/elements/1.1/&quot; xmlns:upnp=&quot;urn:schemas-upnp-org:metadata-1-0/upnp/&quot;&gt;&lt;item id=&quot;0&quot; parentID=&quot;-1&quot; restricted=&quot;1&quot;&gt;&lt;dc:title&gt;Video&lt;/dc:title&gt;&lt;upnp:class&gt;object.item.videoItem&lt;/upnp:class&gt;&lt;res protocolInfo=&quot;http-get:*:$mimeType:*&quot;&gt;$escapedUrl&lt;/res&gt;&lt;/item&gt;&lt;/DIDL-Lite&gt;"""
+                val didlMetadata = """&lt;DIDL-Lite xmlns=&quot;urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/&quot; xmlns:dc=&quot;http://purl.org/dc/elements/1.1/&quot; xmlns:upnp=&quot;urn:schemas-upnp-org:metadata-1-0/upnp/&quot;&gt;&lt;item id=&quot;0&quot; parentID=&quot;-1&quot; restricted=&quot;1&quot;&gt;&lt;dc:title&gt;$escapedTitle&lt;/dc:title&gt;&lt;upnp:class&gt;object.item.videoItem&lt;/upnp:class&gt;&lt;res protocolInfo=&quot;http-get:*:$mimeType:*&quot;&gt;$escapedUrl&lt;/res&gt;&lt;/item&gt;&lt;/DIDL-Lite&gt;"""
                 
                 // 0. Stop any current playback first (helps when switching videos)
                 val stopSoap = """<?xml version="1.0" encoding="utf-8"?><s:Envelope s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" xmlns:s="http://schemas.xmlsoap.org/soap/envelope/"><s:Body><u:Stop xmlns:u="urn:schemas-upnp-org:service:AVTransport:1"><InstanceID>0</InstanceID></u:Stop></s:Body></s:Envelope>"""
@@ -302,5 +329,39 @@ class DeviceRepository @Inject constructor(
         }
         
         connection.disconnect()
+    }
+    
+    // DLNA Playback Controls
+    suspend fun stopDlna(device: Device): Result<Unit> = withContext(Dispatchers.IO) {
+        val endpoint = "http://${device.address}:${device.port}/upnp/control/AVTransport1"
+        val stopSoap = """<?xml version="1.0" encoding="utf-8"?><s:Envelope s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" xmlns:s="http://schemas.xmlsoap.org/soap/envelope/"><s:Body><u:Stop xmlns:u="urn:schemas-upnp-org:service:AVTransport:1"><InstanceID>0</InstanceID></u:Stop></s:Body></s:Envelope>"""
+        try {
+            sendSoapAction(endpoint, "urn:schemas-upnp-org:service:AVTransport:1#Stop", stopSoap)
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+    
+    suspend fun pauseDlna(device: Device): Result<Unit> = withContext(Dispatchers.IO) {
+        val endpoint = "http://${device.address}:${device.port}/upnp/control/AVTransport1"
+        val pauseSoap = """<?xml version="1.0" encoding="utf-8"?><s:Envelope s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" xmlns:s="http://schemas.xmlsoap.org/soap/envelope/"><s:Body><u:Pause xmlns:u="urn:schemas-upnp-org:service:AVTransport:1"><InstanceID>0</InstanceID></u:Pause></s:Body></s:Envelope>"""
+        try {
+            sendSoapAction(endpoint, "urn:schemas-upnp-org:service:AVTransport:1#Pause", pauseSoap)
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+    
+    suspend fun resumeDlna(device: Device): Result<Unit> = withContext(Dispatchers.IO) {
+        val endpoint = "http://${device.address}:${device.port}/upnp/control/AVTransport1"
+        val playSoap = """<?xml version="1.0" encoding="utf-8"?><s:Envelope s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" xmlns:s="http://schemas.xmlsoap.org/soap/envelope/"><s:Body><u:Play xmlns:u="urn:schemas-upnp-org:service:AVTransport:1"><InstanceID>0</InstanceID><Speed>1</Speed></u:Play></s:Body></s:Envelope>"""
+        try {
+            sendSoapAction(endpoint, "urn:schemas-upnp-org:service:AVTransport:1#Play", playSoap)
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
     }
 }

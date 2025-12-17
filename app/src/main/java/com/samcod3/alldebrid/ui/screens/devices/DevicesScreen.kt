@@ -1,6 +1,8 @@
 package com.samcod3.alldebrid.ui.screens.devices
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -10,10 +12,13 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.background
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.rounded.Edit
+import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -57,60 +62,109 @@ fun DevicesScreen(
     deviceToRename?.let { device ->
         AlertDialog(
             onDismissRequest = { deviceToRename = null },
-            title = { Text("Rename Device") },
+            icon = { 
+                Icon(
+                    Icons.Rounded.Edit, 
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary
+                ) 
+            },
+            title = {
+                 Text(
+                     text = "Rename Device",
+                     style = MaterialTheme.typography.headlineSmall
+                 ) 
+            },
             text = {
-                Column {
-                    Text("Original: ${device.name}", style = MaterialTheme.typography.bodySmall)
-                    Spacer(Modifier.height(8.dp))
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    // Device Info Card
+                    androidx.compose.material3.Surface(
+                        shape = MaterialTheme.shapes.medium,
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(12.dp)) {
+                            Text(
+                                text = "Device",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Text(
+                                text = device.name,
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                text = "${device.type.name} • ${device.address}:${device.port}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+
+                    // Input Field
                     OutlinedTextField(
                         value = newName,
                         onValueChange = { newName = it },
-                        label = { Text("Custom name") },
-                        placeholder = { Text(device.name) },
+                        label = { Text("Custom Name") },
+                        placeholder = { Text("Enter a friendly name") },
                         singleLine = true,
+                        shape = MaterialTheme.shapes.medium,
                         modifier = Modifier.fillMaxWidth()
                     )
+                    
+                    if (device.customName != null) {
+                        Text(
+                            text = "Current: ${device.customName}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
                 }
             },
             confirmButton = {
+                Button(
+                    onClick = {
+                        viewModel.renameDevice(device, newName.ifBlank { null })
+                        deviceToRename = null
+                        newName = ""
+                    }
+                ) {
+                    Text("Save")
+                }
+            },
+            dismissButton = {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    // Reset button - clears customName
                     if (device.customName != null) {
                         TextButton(
                             onClick = {
                                 viewModel.renameDevice(device, null)
                                 deviceToRename = null
                                 newName = ""
-                            }
+                            },
+                            colors = androidx.compose.material3.ButtonDefaults.textButtonColors(
+                                contentColor = MaterialTheme.colorScheme.error
+                            )
                         ) {
-                            Text("Resetear")
+                            Text("Reset")
                         }
                     }
-                    // Save button
-                    Button(
-                        onClick = {
-                            viewModel.renameDevice(device, newName.ifBlank { null })
-                            deviceToRename = null
-                            newName = ""
-                        }
-                    ) {
-                        Text("Save")
+                    TextButton(onClick = { 
+                        deviceToRename = null
+                        newName = ""
+                    }) {
+                        Text("Cancel")
                     }
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { 
-                    deviceToRename = null
-                    newName = ""
-                }) {
-                    Text("Cancel")
                 }
             }
         )
     }
 
     Scaffold(
-        contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0, 0, 0, 0),
+        contentWindowInsets = androidx.compose.foundation.layout.WindowInsets.Companion.navigationBars,
         floatingActionButton = {
             Column(
                 horizontalAlignment = Alignment.End,
@@ -149,7 +203,7 @@ fun DevicesScreen(
                         )
                     } else {
                         Icon(
-                            imageVector = Icons.Default.Search,
+                            imageVector = Icons.Rounded.Search,
                             contentDescription = stringResource(R.string.devices_discover)
                         )
                     }

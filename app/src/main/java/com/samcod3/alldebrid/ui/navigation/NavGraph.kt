@@ -8,14 +8,14 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.ui.unit.dp
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Devices
-import androidx.compose.material.icons.filled.Download
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.outlined.CloudDownload
 import androidx.compose.material.icons.outlined.Devices
-import androidx.compose.material.icons.outlined.Download
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.rounded.CloudDownload
+import androidx.compose.material.icons.rounded.Devices
+import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -55,28 +55,28 @@ sealed class Screen(
     data object Downloads : Screen(
         route = "downloads",
         titleResId = R.string.nav_downloads,
-        selectedIcon = Icons.Filled.Download,
-        unselectedIcon = Icons.Outlined.Download
+        selectedIcon = Icons.Rounded.CloudDownload,
+        unselectedIcon = Icons.Outlined.CloudDownload
     )
     
     data object Search : Screen(
         route = "search",
         titleResId = R.string.nav_search,
-        selectedIcon = Icons.Filled.Search,
+        selectedIcon = Icons.Rounded.Search,
         unselectedIcon = Icons.Outlined.Search
     )
     
     data object Devices : Screen(
         route = "devices",
         titleResId = R.string.nav_devices,
-        selectedIcon = Icons.Filled.Devices,
+        selectedIcon = Icons.Rounded.Devices,
         unselectedIcon = Icons.Outlined.Devices
     )
     
     data object Settings : Screen(
         route = "settings",
         titleResId = R.string.nav_settings,
-        selectedIcon = Icons.Filled.Settings,
+        selectedIcon = Icons.Rounded.Settings,
         unselectedIcon = Icons.Outlined.Settings
     )
 }
@@ -112,6 +112,7 @@ fun AllDebridNavHost() {
     }.takeIf { it >= 0 } ?: 0
 
     Scaffold(
+        contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0, 0, 0, 0),
         topBar = {
             if (showTopBar) {
                 // Container for Status Bar + TabRow

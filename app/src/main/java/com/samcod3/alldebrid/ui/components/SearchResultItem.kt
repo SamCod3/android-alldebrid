@@ -8,6 +8,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.material3.FilledIconButton
+import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.ui.unit.sp
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -37,7 +44,8 @@ fun SearchResultItem(
                 result.addedToDebrid -> MaterialTheme.colorScheme.primaryContainer // Blue/green for cached
                 else -> MaterialTheme.colorScheme.surfaceVariant
             }
-        )
+        ),
+        shape = MaterialTheme.shapes.medium // Less rounded as requested
     ) {
         Row(
             modifier = Modifier
@@ -47,63 +55,88 @@ fun SearchResultItem(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
+                // Title
                 Text(
                     text = result.title,
-                    style = MaterialTheme.typography.titleSmall,
+                    style = MaterialTheme.typography.titleMedium.copy(fontSize = 16.sp), // Slightly bolder/larger
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
+                
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                // Meta Info Row
                 Row(
+                    verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    result.size?.let { size ->
+                    // Size Badge (Surface background)
+                    androidx.compose.material3.Surface(
+                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f),
+                        shape = MaterialTheme.shapes.extraSmall,
+                    ) {
                         Text(
-                            text = formatSize(size),
+                            text = formatSize(result.size ?: 0),
                             style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                         )
                     }
+
+                    // Seeders Badge
                     result.seeders?.let { seeders ->
+                        androidx.compose.material3.Surface(
+                            color = if (seeders > 0) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.errorContainer,
+                            shape = MaterialTheme.shapes.extraSmall
+                        ) {
+                            Text(
+                                text = "S: $seeders",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = if (seeders > 0) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onErrorContainer,
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            )
+                        }
+                    }
+                    
+                    // Tracker
+                    result.tracker?.let { tracker ->
                         Text(
-                            text = "S: $seeders",
+                            text = tracker,
                             style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.primary
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
-                    result.peers?.let { peers ->
-                        Text(
-                            text = "P: $peers",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-                result.tracker?.let { tracker ->
-                    Text(
-                        text = tracker,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.secondary
-                    )
                 }
             }
             
+            // Action Button
             IconButton(
                 onClick = onAddToDebrid,
-                enabled = !result.addedToDebrid && !result.failed
+                enabled = !result.addedToDebrid && !result.failed,
+                modifier = Modifier.padding(start = 8.dp)
             ) {
-                Icon(
-                    imageVector = when {
-                        result.failed -> Icons.Default.Close
-                        result.addedToDebrid -> Icons.Default.Check
-                        else -> Icons.Default.Add
-                    },
-                    contentDescription = "Add to AllDebrid",
-                    tint = when {
-                        result.failed -> MaterialTheme.colorScheme.error
-                        result.addedToDebrid -> MaterialTheme.colorScheme.primary
-                        else -> MaterialTheme.colorScheme.onSurface
-                    }
-                )
+                androidx.compose.material3.FilledIconButton(
+                    onClick = onAddToDebrid,
+                    enabled = !result.addedToDebrid && !result.failed,
+                    colors = androidx.compose.material3.IconButtonDefaults.filledIconButtonColors(
+                         containerColor = MaterialTheme.colorScheme.surface // Subtle contrast
+                    )
+                ) {
+                     Icon(
+                        imageVector = when {
+                            result.failed -> Icons.Default.Close
+                            result.addedToDebrid -> Icons.Default.Check
+                            else -> Icons.Default.Add
+                        },
+                        contentDescription = "Add to AllDebrid",
+                        tint = when {
+                            result.failed -> MaterialTheme.colorScheme.error
+                            result.addedToDebrid -> MaterialTheme.colorScheme.primary
+                            else -> MaterialTheme.colorScheme.onSurface
+                        }
+                    )
+                }
             }
         }
     }
