@@ -66,13 +66,17 @@ class SearchViewModel @Inject constructor(
             _uiState.update { it.copy(message = "Adding...") }
             
             allDebridRepository.uploadLink(magnetLink)
-                .onSuccess {
-                    // Mark as added in UI
+                .onSuccess { isReady ->
+                    // isReady = true means cached (instant), false means AllDebrid is downloading
+                    val isDownloading = !isReady
+                    val message = if (isReady) "Added! (Cached)" else "Added! (Downloading...)"
+                    
+                    // Mark as added in UI with appropriate state
                     _uiState.update { state ->
                         state.copy(
-                            message = "Added!",
+                            message = message,
                             results = state.results.map {
-                                if (it == result) it.copy(addedToDebrid = true) else it
+                                if (it == result) it.copy(addedToDebrid = true, isDownloading = isDownloading) else it
                             }
                         )
                     }

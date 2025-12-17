@@ -32,6 +32,7 @@ data class SearchResult(
     
     // Local state - not from API
     val addedToDebrid: Boolean = false,
+    val isDownloading: Boolean = false, // True if AllDebrid is downloading, false if cached/instant
     val failed: Boolean = false
 )
 

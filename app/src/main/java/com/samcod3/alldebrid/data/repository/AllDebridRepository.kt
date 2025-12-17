@@ -114,8 +114,9 @@ class AllDebridRepository @Inject constructor(
     
     /**
      * Upload a link to AllDebrid - handles magnets, remote URLs, and local torrent files
+     * Returns: true = cached (instant), false = downloading
      */
-    suspend fun uploadLink(link: String): Result<Unit> {
+    suspend fun uploadLink(link: String): Result<Boolean> {
         return try {
             val apiKey = getApiKey()
             if (apiKey.isBlank()) {
@@ -158,12 +159,18 @@ class AllDebridRepository @Inject constructor(
         }
     }
     
-    private suspend fun uploadMagnetDirect(apiKey: String, magnet: String): Result<Unit> {
+    /**
+     * Upload magnet directly. Returns true if cached (instant), false if downloading
+     */
+    private suspend fun uploadMagnetDirect(apiKey: String, magnet: String): Result<Boolean> {
         val response = api.uploadMagnet(apiKey = apiKey, magnet = magnet)
         val body = response.body()
         
         return if (response.isSuccessful && body?.status == "success") {
-            Result.success(Unit)
+            // Check if the magnet is ready (cached) or needs downloading
+            val uploadedMagnet = body.data?.magnets?.firstOrNull() ?: body.data?.files?.firstOrNull()
+            val isReady = uploadedMagnet?.ready ?: false
+            Result.success(isReady)
         } else {
             val error = body?.error
             checkForIpError(error?.code, error?.message)
@@ -171,7 +178,7 @@ class AllDebridRepository @Inject constructor(
         }
     }
     
-    private suspend fun downloadAndUploadTorrent(apiKey: String, torrentUrl: String): Result<Unit> = withContext(Dispatchers.IO) {
+    private suspend fun downloadAndUploadTorrent(apiKey: String, torrentUrl: String): Result<Boolean> = withContext(Dispatchers.IO) {
         try {
             // Use injected client with custom redirect behavior
             // newBuilder() reuses connection pool while allowing config changes
@@ -239,7 +246,7 @@ class AllDebridRepository @Inject constructor(
         }
     }
     
-    private suspend fun handleTorrentResponse(response: okhttp3.Response, apiKey: String): Result<Unit> {
+    private suspend fun handleTorrentResponse(response: okhttp3.Response, apiKey: String): Result<Boolean> {
         if (!response.isSuccessful) {
             Log.e(TAG, "Failed to download torrent: HTTP ${response.code}")
             val errorMsg = when (response.code) {
@@ -290,7 +297,10 @@ class AllDebridRepository @Inject constructor(
         
         return if (uploadResponse.isSuccessful && body?.status == "success") {
             Log.d(TAG, "Torrent file uploaded successfully")
-            Result.success(Unit)
+            // Check if the magnet is ready (cached) or needs downloading
+            val uploadedMagnet = body.data?.magnets?.firstOrNull() ?: body.data?.files?.firstOrNull()
+            val isReady = uploadedMagnet?.ready ?: false
+            Result.success(isReady)
         } else {
             val error = body?.error
             checkForIpError(error?.code, error?.message)
@@ -299,7 +309,7 @@ class AllDebridRepository @Inject constructor(
     }
     
     // Keep legacy name for compatibility
-    suspend fun uploadMagnet(magnet: String): Result<Unit> = uploadLink(magnet)
+    suspend fun uploadMagnet(magnet: String): Result<Boolean> = uploadLink(magnet)
     
     suspend fun deleteMagnet(id: Long): Result<Unit> {
         return try {

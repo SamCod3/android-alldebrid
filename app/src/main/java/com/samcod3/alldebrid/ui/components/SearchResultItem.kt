@@ -33,7 +33,8 @@ fun SearchResultItem(
         colors = CardDefaults.cardColors(
             containerColor = when {
                 result.failed -> MaterialTheme.colorScheme.errorContainer
-                result.addedToDebrid -> MaterialTheme.colorScheme.primaryContainer
+                result.addedToDebrid && result.isDownloading -> MaterialTheme.colorScheme.tertiaryContainer // Orange-ish for downloading
+                result.addedToDebrid -> MaterialTheme.colorScheme.primaryContainer // Blue/green for cached
                 else -> MaterialTheme.colorScheme.surfaceVariant
             }
         )

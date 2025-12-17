@@ -21,6 +21,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Cast
 import androidx.compose.material.icons.filled.CastConnected
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
@@ -35,6 +36,7 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -357,20 +359,96 @@ fun DownloadsScreen(
                     )
                 }
                 else -> {
-                    LazyColumn(
-                        contentPadding = PaddingValues(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        items(uiState.magnets) { magnet ->
-                            val context = LocalContext.current
-                            DownloadCard(
-                                magnet = magnet,
-                                onDelete = { viewModel.deleteMagnet(magnet.id) },
-                                onCopyLink = { link -> 
-                                    viewModel.copyLinkToClipboard(context, link)
-                                },
-                                onPlay = { link, title -> viewModel.playLink(link, title) }
-                            )
+                    // Filter magnets by search query
+                    var searchFilter by remember { mutableStateOf("") }
+                    val filteredMagnets = uiState.magnets.filter { 
+                        searchFilter.isBlank() || it.filename.contains(searchFilter, ignoreCase = true)
+                    }
+                    
+                    // Separate into downloading and ready
+                    val downloadingMagnets = filteredMagnets.filter { it.status != "Ready" }
+                    val readyMagnets = filteredMagnets.filter { it.status == "Ready" }
+                    
+                    Column {
+                        // Search filter
+                        OutlinedTextField(
+                            value = searchFilter,
+                            onValueChange = { searchFilter = it },
+                            placeholder = { Text("Filtrar por nombre...") },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 4.dp),
+                            singleLine = true,
+                            trailingIcon = {
+                                if (searchFilter.isNotBlank()) {
+                                    IconButton(onClick = { searchFilter = "" }) {
+                                        Icon(Icons.Default.Close, "Clear")
+                                    }
+                                }
+                            }
+                        )
+                        
+                        LazyColumn(
+                            contentPadding = PaddingValues(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            // Downloading section
+                            if (downloadingMagnets.isNotEmpty()) {
+                                item {
+                                    Text(
+                                        text = "📥 Descargando (${downloadingMagnets.size})",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        color = MaterialTheme.colorScheme.tertiary,
+                                        modifier = Modifier.padding(bottom = 4.dp)
+                                    )
+                                }
+                                items(downloadingMagnets) { magnet ->
+                                    val context = LocalContext.current
+                                    DownloadCard(
+                                        magnet = magnet,
+                                        onDelete = { viewModel.deleteMagnet(magnet.id) },
+                                        onCopyLink = { link ->
+                                            viewModel.copyLinkToClipboard(context, link)
+                                        },
+                                        onPlay = { link, title -> viewModel.playLink(link, title) }
+                                    )
+                                }
+                            }
+                            
+                            // Ready section
+                            if (readyMagnets.isNotEmpty()) {
+                                item {
+                                    Text(
+                                        text = "✅ Disponibles (${readyMagnets.size})",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.padding(top = if (downloadingMagnets.isNotEmpty()) 12.dp else 0.dp, bottom = 4.dp)
+                                    )
+                                }
+                                items(readyMagnets) { magnet ->
+                                    val context = LocalContext.current
+                                    DownloadCard(
+                                        magnet = magnet,
+                                        onDelete = { viewModel.deleteMagnet(magnet.id) },
+                                        onCopyLink = { link ->
+                                            viewModel.copyLinkToClipboard(context, link)
+                                        },
+                                        onPlay = { link, title -> viewModel.playLink(link, title) }
+                                    )
+                                }
+                            }
+                            
+                            // No results message
+                            if (filteredMagnets.isEmpty() && searchFilter.isNotBlank()) {
+                                item {
+                                    Text(
+                                        text = "No se encontraron resultados para \"$searchFilter\"",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.padding(16.dp)
+                                    )
+                                }
+                            }
                         }
                     }
                 }
