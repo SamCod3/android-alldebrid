@@ -406,9 +406,9 @@ fun DownloadsScreen(
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             FilterChip(
-                                selected = statusFilter == "all",
-                                onClick = { statusFilter = "all" },
-                                label = { Text("Todos (${uiState.magnets.size})") }
+                                selected = statusFilter == "ready",
+                                onClick = { statusFilter = "ready" },
+                                label = { Text("✅ ($readyCount)") }
                             )
                             FilterChip(
                                 selected = statusFilter == "downloading",
@@ -416,9 +416,9 @@ fun DownloadsScreen(
                                 label = { Text("📥 ($downloadingCount)") }
                             )
                             FilterChip(
-                                selected = statusFilter == "ready",
-                                onClick = { statusFilter = "ready" },
-                                label = { Text("✅ ($readyCount)") }
+                                selected = statusFilter == "all",
+                                onClick = { statusFilter = "all" },
+                                label = { Text("Todos (${uiState.magnets.size})") }
                             )
                         }
                         
