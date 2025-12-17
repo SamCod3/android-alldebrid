@@ -26,9 +26,6 @@ class DlnaQueueManager @Inject constructor() {
     private val _queue = MutableStateFlow<List<DlnaQueueItem>>(emptyList())
     val queue: StateFlow<List<DlnaQueueItem>> = _queue.asStateFlow()
     
-    private val _currentlyPlaying = MutableStateFlow<DlnaQueueItem?>(null)
-    val currentlyPlaying: StateFlow<DlnaQueueItem?> = _currentlyPlaying.asStateFlow()
-    
     /**
      * Add a video to the queue
      */
@@ -60,48 +57,7 @@ class DlnaQueueManager @Inject constructor() {
         
         val next = items.first()
         _queue.value = items.drop(1)
-        _currentlyPlaying.value = next
         return next
-    }
-    
-    /**
-     * Peek at the next item without removing it
-     */
-    fun peekNext(): DlnaQueueItem? {
-        return _queue.value.firstOrNull()
-    }
-    
-    /**
-     * Set the currently playing item (for display purposes)
-     */
-    fun setCurrentlyPlaying(item: DlnaQueueItem?) {
-        _currentlyPlaying.value = item
-    }
-    
-    /**
-     * Move an item up in the queue
-     */
-    fun moveUp(itemId: String) {
-        val items = _queue.value.toMutableList()
-        val index = items.indexOfFirst { it.id == itemId }
-        if (index > 0) {
-            val item = items.removeAt(index)
-            items.add(index - 1, item)
-            _queue.value = items
-        }
-    }
-    
-    /**
-     * Move an item down in the queue
-     */
-    fun moveDown(itemId: String) {
-        val items = _queue.value.toMutableList()
-        val index = items.indexOfFirst { it.id == itemId }
-        if (index >= 0 && index < items.size - 1) {
-            val item = items.removeAt(index)
-            items.add(index + 1, item)
-            _queue.value = items
-        }
     }
     
     /**
@@ -114,3 +70,4 @@ class DlnaQueueManager @Inject constructor() {
      */
     fun isEmpty(): Boolean = _queue.value.isEmpty()
 }
+

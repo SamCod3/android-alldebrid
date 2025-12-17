@@ -29,7 +29,8 @@ class IpAuthorizationRequiredException(
 @Singleton
 class AllDebridRepository @Inject constructor(
     private val api: AllDebridApi,
-    private val settingsDataStore: SettingsDataStore
+    private val settingsDataStore: SettingsDataStore,
+    private val httpClient: OkHttpClient
 ) {
     
     companion object {
@@ -172,10 +173,9 @@ class AllDebridRepository @Inject constructor(
     
     private suspend fun downloadAndUploadTorrent(apiKey: String, torrentUrl: String): Result<Unit> = withContext(Dispatchers.IO) {
         try {
-            // Don't follow redirects automatically - we need to catch magnet: redirects
-            val client = OkHttpClient.Builder()
-                .connectTimeout(10, java.util.concurrent.TimeUnit.SECONDS)
-                .readTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+            // Use injected client with custom redirect behavior
+            // newBuilder() reuses connection pool while allowing config changes
+            val client = httpClient.newBuilder()
                 .followRedirects(false) // Manual redirect handling to catch magnet links
                 .followSslRedirects(false)
                 .build()

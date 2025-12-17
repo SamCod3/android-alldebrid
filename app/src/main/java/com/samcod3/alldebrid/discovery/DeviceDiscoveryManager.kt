@@ -15,6 +15,8 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 import java.net.DatagramPacket
 import java.net.DatagramSocket
 import java.net.InetAddress
@@ -225,14 +227,14 @@ class DeviceDiscoveryManager @Inject constructor(
     }
     
     private suspend fun fetchDeviceFriendlyName(locationUrl: String): String? = withTimeoutOrNull(3000) {
+        var connection: java.net.HttpURLConnection? = null
         try {
             Log.d(TAG, "Fetching device description from: $locationUrl")
             val url = java.net.URL(locationUrl)
-            val connection = url.openConnection() as java.net.HttpURLConnection
+            connection = url.openConnection() as java.net.HttpURLConnection
             connection.connectTimeout = 2000
             connection.readTimeout = 2000
             val xml = connection.inputStream.bufferedReader().readText()
-            connection.disconnect()
             
             Log.d(TAG, "Device description XML length: ${xml.length} chars")
             
@@ -249,6 +251,8 @@ class DeviceDiscoveryManager @Inject constructor(
         } catch (e: Exception) {
             Log.e(TAG, "Failed to fetch device description from $locationUrl: ${e.message}")
             null
+        } finally {
+            connection?.disconnect()
         }
     }
     
@@ -285,22 +289,27 @@ class DeviceDiscoveryManager @Inject constructor(
         Log.d(TAG, "Scanning network: $localIpPrefix.x for devices (Kodi & DLNA)")
         
         // Scan common IP range (1-254)
+        // Limit concurrent requests to reduce battery/network load
+        val semaphore = Semaphore(30)
+        
         coroutineScope {
             val scanJobs = (1..254).map { i ->
                 async {
-                    val ip = "$localIpPrefix.$i"
-                    val foundDevices = mutableListOf<Device>()
-                    
-                    // 1. Check Kodi
-                    checkKodiDevice(ip)?.let { foundDevices.add(it) }
-                    
-                    // 2. Check DLNA ports if custom range is enabled (to save time in production)
-                    // If we suspect emulation or issues with multicast, manual port scan is useful.
-                    if (useCustomRange || foundDevices.isEmpty()) {
-                        checkDlnaPorts(ip)?.let { foundDevices.add(it) }
+                    semaphore.withPermit {
+                        val ip = "$localIpPrefix.$i"
+                        val foundDevices = mutableListOf<Device>()
+                        
+                        // 1. Check Kodi
+                        checkKodiDevice(ip)?.let { foundDevices.add(it) }
+                        
+                        // 2. Check DLNA ports if custom range is enabled (to save time in production)
+                        // If we suspect emulation or issues with multicast, manual port scan is useful.
+                        if (useCustomRange || foundDevices.isEmpty()) {
+                            checkDlnaPorts(ip)?.let { foundDevices.add(it) }
+                        }
+                        
+                        foundDevices
                     }
-                    
-                    foundDevices
                 }
             }
             
