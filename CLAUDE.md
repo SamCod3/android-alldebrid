@@ -82,54 +82,44 @@ Sistema para mantener continuidad entre sesiones de desarrollo.
 
 ### Estado Actual
 - **Branch**: `dev-ui`
-- **Fase**: Refactorización UI Material 3
+- **Fase**: Completado - UI limpio
 
 ### Última Sesión (2026-01-28)
-- **Refactorización UI completa (3 fases)**:
-  - Fase 1: Iconos unificados a `Icons.Rounded` (DeviceItem, SettingsScreen, ApiKeyManagerScreen)
-  - Fase 2: Creado `FormatUtils.kt`, corregido bug doble botón en SearchResultItem, fix fontWeight
-  - Fase 3: Creado `Spacing.kt` con escala estandarizada (xs=4, sm=8, md=12, lg=16, xl=20, xxl=24)
-- **Archivos nuevos**:
-  - `ui/util/FormatUtils.kt` - función `formatSize()` centralizada
-  - `ui/theme/Spacing.kt` - escala de spacing consistente
-- **Iconos AutoMirrored**: Login/Logout usan `Icons.AutoMirrored.Rounded` para soporte RTL
+- **Refactorización UI completa** (commiteado):
+  - `857cb7b` - Icons.Rounded, Spacing.kt, FormatUtils.kt, fix bugs
+  - `35445c2` - Scan híbrido Kodi + SSDP
+- **Statusline personalizado** (global en `~/.claude/`):
+  - Muestra: directorio (branch) | [Modelo] %usado + alerta compact
+  - Script: `~/.claude/statusline.sh`
+  - Config: `~/.claude/settings.json`
 
 ### Tareas Pendientes
 <!-- Marcar [x] cuando se complete, agregar nuevas al final -->
-- [ ] Commitear refactorización UI (9 archivos modificados, 2 nuevos)
-- [ ] Commitear scan híbrido (DeviceDiscoveryManager, DeviceRepository, DevicesViewModel)
+- [x] Commitear refactorización UI
+- [x] Commitear scan híbrido
 - [ ] Verificar que todos los endpoints funcionan correctamente con v4.1
 - [ ] Probar flujo completo: listar magnets → ver archivos → reproducir
 
 ### En Progreso
 <!-- Tarea actual que se estaba trabajando -->
-- **Refactorización UI (sin commit)**: 9 archivos modificados + 2 nuevos
-  - Componentes: DeviceItem, DownloadCard, SearchResultItem
-  - Screens: DevicesScreen, SettingsScreen, ApiKeyManagerScreen
-  - Theme: Spacing.kt (nuevo)
-  - Utils: FormatUtils.kt (nuevo)
-- **Scan híbrido (sin commit)**: DeviceDiscoveryManager.kt, DeviceRepository.kt, DevicesViewModel.kt
+- Nada pendiente, todo commiteado
 
 ### Últimos Cambios Importantes
 - **Refactorización UI M3**: Iconos Rounded, Spacing consistente, FormatUtils centralizado
-- **Bug fix**: Doble botón anidado en SearchResultItem (IconButton dentro de FilledIconButton)
-- **Swipe-to-delete**: `SwipeToDelete.kt`, `DownloadsScreen.kt`, `DevicesScreen.kt`
-- **Login/API Keys**: `ApiKeyManagerScreen.kt`, `ApiKeyManagerViewModel.kt`, `WebLoginScreen.kt`
+- **Scan híbrido**: Kodi + SSDP en paralelo para detección más rápida
+- **Statusline**: Script bash personalizado con % contexto y alerta compact
 
 ### Decisiones Técnicas Recientes
 - **Icons Material 3**:
   - Usar `Icons.Rounded` para consistencia visual
   - Usar `Icons.AutoMirrored.Rounded` para iconos direccionales (Login, Logout, ArrowBack)
-  - Mantener `Icons.Outlined` solo para estados unselected en BottomNav
 - **Spacing scale**: Basada en 4dp (xs=4, sm=8, md=12, lg=16, xl=20, xxl=24, xxxl=32)
-- **formatSize()**: Centralizado en `ui/util/FormatUtils.kt` para evitar duplicación
-- **Swipe-to-delete pattern**: Scrim antes del contenido, sin zIndex
+- **Statusline**: Claude Code no soporta alineación derecha, todo a la izquierda
 
 ### Próximos Pasos Sugeridos
 <!-- Actualizar según la dirección del proyecto -->
-- Commitear los cambios de UI en 2 commits separados (UI refactor + scan híbrido)
-- Extender Spacing a más componentes gradualmente
-- Testear la app completamente
+- Testear la app completamente con API v4.1
+- Probar scan híbrido en diferentes redes
 
 ---
 
