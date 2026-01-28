@@ -85,18 +85,13 @@ Sistema para mantener continuidad entre sesiones de desarrollo.
 - **Fase**: UI refinements + Swipe-to-delete
 
 ### Última Sesión (2026-01-28)
-- **Swipe-to-delete implementado**:
-  - Nuevo componente `SwipeToDeleteContainer` en `ui/components/SwipeToDelete.kt`
-  - Usa `AnchoredDraggableState` con porcentaje configurable (50% del ancho)
-  - Patrón parent-controlled: `isRevealed`/`onRevealChange` para coordinar múltiples items
-  - `derivedStateOf` para observar cambios en el offset del swipe
-  - `anchoredDrag { dragTo(0f) }` para cerrar programáticamente (settle() no funcionaba)
-- **Tap-outside-to-close**:
-  - Scrim invisible con `pointerInput` + `detectTapGestures`
-  - IMPORTANTE: El scrim debe declararse ANTES del contenido (sin zIndex) para que el contenido reciba toques primero
-  - En DownloadsScreen cubre filtro+chips+lista
-  - En DevicesScreen cubre solo el área del listado
-- **Fix DevicesScreen**: El scrim tenía `zIndex(1f)` que bloqueaba el botón "Eliminar"
+- **Skills /save-dev y /continue-dev**:
+  - Creados como comandos personalizados de Claude Code
+  - Ubicación correcta: `.claude/commands/` (no `.claude/skills/`)
+  - Permiten guardar y retomar estado entre sesiones
+- **Swipe-to-delete completado**:
+  - Fix del scrim en DevicesScreen (sin zIndex, declarar ANTES del contenido)
+  - Botón eliminar funciona correctamente
 
 ### Tareas Pendientes
 <!-- Marcar [x] cuando se complete, agregar nuevas al final -->
