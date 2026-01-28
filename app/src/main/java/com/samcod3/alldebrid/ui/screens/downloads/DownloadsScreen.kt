@@ -3,7 +3,9 @@ package com.samcod3.alldebrid.ui.screens.downloads
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -22,6 +24,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.zIndex
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Cast
@@ -68,6 +72,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.samcod3.alldebrid.R
 import com.samcod3.alldebrid.ui.components.DownloadCard
+import com.samcod3.alldebrid.ui.components.SwipeToDeleteContainer
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -422,6 +427,9 @@ fun DownloadsScreen(
                     // Filter states
                     var searchFilter by remember { mutableStateOf("") }
                     var statusFilter by remember { mutableStateOf("ready") } // Default to ready (Disponibles)
+
+                    // Track which item has swipe revealed (only one at a time)
+                    var revealedMagnetId by remember { mutableStateOf<Long?>(null) }
                     
                     // Apply filters
                     val filteredMagnets = uiState.magnets.filter { magnet ->
@@ -438,9 +446,10 @@ fun DownloadsScreen(
                     val downloadingCount = uiState.magnets.count { it.status != "Ready" }
                     val readyCount = uiState.magnets.count { it.status == "Ready" }
                     
-                    Column {
-                        // Search filter
-                        OutlinedTextField(
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        Column {
+                            // Search filter
+                            OutlinedTextField(
                             value = searchFilter,
                             onValueChange = { searchFilter = it },
                             placeholder = { Text("Filtrar por nombre...") },
@@ -502,37 +511,59 @@ fun DownloadsScreen(
                         }
                         
                         LazyColumn(
-                            contentPadding = PaddingValues(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            items(filteredMagnets) { magnet ->
-                                val context = LocalContext.current
-                                DownloadCard(
-                                    magnet = magnet,
-                                    onDelete = { viewModel.deleteMagnet(magnet.id) },
-                                    onCopyLink = { link ->
-                                        viewModel.copyLinkToClipboard(context, link)
-                                    },
-                                    onPlay = { link, title -> viewModel.playLink(link, title) },
-                                    onFetchFiles = { magnetId -> viewModel.fetchMagnetFiles(magnetId) },
-                                    refreshCallback = { viewModel.refreshSilent() }
-                                )
-                            }
-                            
-                            // No results message
-                            if (filteredMagnets.isEmpty()) {
-                                item {
-                                    Text(
-                                        text = if (searchFilter.isNotBlank()) 
-                                            "No se encontraron resultados para \"$searchFilter\""
-                                        else 
-                                            "No hay elementos en esta categoría",
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier.padding(16.dp)
-                                    )
+                                contentPadding = PaddingValues(16.dp),
+                                verticalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                items(
+                                    items = filteredMagnets,
+                                    key = { it.id }
+                                ) { magnet ->
+                                    val context = LocalContext.current
+                                    SwipeToDeleteContainer(
+                                        onDelete = { viewModel.deleteMagnet(magnet.id) },
+                                        isRevealed = revealedMagnetId == magnet.id,
+                                        onRevealChange = { isOpen ->
+                                            revealedMagnetId = if (isOpen) magnet.id else null
+                                        }
+                                    ) {
+                                        DownloadCard(
+                                            magnet = magnet,
+                                            onCopyLink = { link ->
+                                                viewModel.copyLinkToClipboard(context, link)
+                                            },
+                                            onPlay = { link, title -> viewModel.playLink(link, title) },
+                                            onFetchFiles = { magnetId -> viewModel.fetchMagnetFiles(magnetId) },
+                                            refreshCallback = { viewModel.refreshSilent() }
+                                        )
+                                    }
+                                }
+
+                                // No results message
+                                if (filteredMagnets.isEmpty()) {
+                                    item {
+                                        Text(
+                                            text = if (searchFilter.isNotBlank())
+                                                "No se encontraron resultados para \"$searchFilter\""
+                                            else
+                                                "No hay elementos en esta categoría",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.padding(16.dp)
+                                        )
+                                    }
                                 }
                             }
+                        }
+
+                        // Invisible scrim - intercepts taps anywhere to close revealed swipe
+                        if (revealedMagnetId != null) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .pointerInput(revealedMagnetId) {
+                                        detectTapGestures { revealedMagnetId = null }
+                                    }
+                            )
                         }
                     }
                 }

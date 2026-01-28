@@ -17,10 +17,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.InsertDriveFile
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.rounded.PlayArrow
-import androidx.compose.material.icons.rounded.RemoveCircleOutline
 import androidx.compose.material.icons.rounded.Visibility
 import androidx.compose.material.icons.rounded.VisibilityOff
 import androidx.compose.material3.Card
@@ -69,7 +66,6 @@ private fun String.isMediaFile(): Boolean {
 @Composable
 fun DownloadCard(
     magnet: Magnet,
-    onDelete: () -> Unit,
     onCopyLink: (String) -> Unit,
     onPlay: (link: String, title: String) -> Unit,
     onFetchFiles: suspend (Long) -> Result<List<FlatFile>>,
@@ -439,21 +435,8 @@ fun DownloadCard(
                         }
                     }
                 }
-                
-                Row {
-                    IconButton(
-                        onClick = onDelete,
-                    ) {
-                        Icon(
-                            imageVector = Icons.Rounded.RemoveCircleOutline,
-                            contentDescription = "Delete",
-                            tint = MaterialTheme.colorScheme.error,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-                }
             }
-            
+
             // Progress bar for downloading
             if (magnet.status == "Downloading" && magnet.downloaded > 0) {
                 Spacer(modifier = Modifier.height(12.dp))
