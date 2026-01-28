@@ -58,7 +58,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.zIndex
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -338,6 +337,18 @@ fun DevicesScreen(
                 }
                 else -> {
                     Box(modifier = Modifier.fillMaxSize()) {
+                        // Scrim FIRST (drawn below) - intercepts taps outside list items
+                        if (revealedDeviceId != null) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .pointerInput(revealedDeviceId) {
+                                        detectTapGestures { revealedDeviceId = null }
+                                    }
+                            )
+                        }
+
+                        // LazyColumn AFTER (drawn above) - delete button receives taps
                         LazyColumn(
                             contentPadding = PaddingValues(16.dp),
                             verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -369,18 +380,6 @@ fun DevicesScreen(
                                     )
                                 }
                             }
-                        }
-
-                        // Scrim overlay - intercepts taps to close revealed swipe
-                        if (revealedDeviceId != null) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .zIndex(1f)
-                                    .pointerInput(revealedDeviceId) {
-                                        detectTapGestures { revealedDeviceId = null }
-                                    }
-                            )
                         }
                     }
                 }

@@ -82,17 +82,21 @@ Sistema para mantener continuidad entre sesiones de desarrollo.
 
 ### Estado Actual
 - **Branch**: `dev-ui`
-- **Fase**: Migración completada a API v4.1
+- **Fase**: UI refinements + Swipe-to-delete
 
 ### Última Sesión (2026-01-28)
-- **Mejoras en flujo de login/API Keys**:
-  - Botón Logout con confirmación en API Keys Manager
-  - Limpia cookies al hacer logout para forzar re-login
-  - Refresh automático al volver de WebLogin (lifecycle observer)
-  - Si no hay keys tras login, vuelve automáticamente a API Keys para crear una
-- **Migración API v4 → v4.1** (la v4 dejó de funcionar)
-  - GET → POST con `@FormUrlEncoded` en todos los endpoints
-  - Nuevo endpoint `/magnet/files` (archivos ya no vienen en `/magnet/status`)
+- **Swipe-to-delete implementado**:
+  - Nuevo componente `SwipeToDeleteContainer` en `ui/components/SwipeToDelete.kt`
+  - Usa `AnchoredDraggableState` con porcentaje configurable (50% del ancho)
+  - Patrón parent-controlled: `isRevealed`/`onRevealChange` para coordinar múltiples items
+  - `derivedStateOf` para observar cambios en el offset del swipe
+  - `anchoredDrag { dragTo(0f) }` para cerrar programáticamente (settle() no funcionaba)
+- **Tap-outside-to-close**:
+  - Scrim invisible con `pointerInput` + `detectTapGestures`
+  - IMPORTANTE: El scrim debe declararse ANTES del contenido (sin zIndex) para que el contenido reciba toques primero
+  - En DownloadsScreen cubre filtro+chips+lista
+  - En DevicesScreen cubre solo el área del listado
+- **Fix DevicesScreen**: El scrim tenía `zIndex(1f)` que bloqueaba el botón "Eliminar"
 
 ### Tareas Pendientes
 <!-- Marcar [x] cuando se complete, agregar nuevas al final -->
@@ -105,19 +109,19 @@ Sistema para mantener continuidad entre sesiones de desarrollo.
 - (ninguna)
 
 ### Últimos Cambios Importantes
+- **Swipe-to-delete**: `SwipeToDelete.kt` (nuevo), `DownloadsScreen.kt`, `DevicesScreen.kt`, `DownloadCard.kt`
 - **Login/API Keys**: `ApiKeyManagerScreen.kt`, `ApiKeyManagerViewModel.kt`, `WebLoginScreen.kt`, `DashboardApi.kt`
 - **Migración API v4.1**: `AllDebridApi.kt`, `Magnet.kt`, `AllDebridRepository.kt`
-- UI actualizada: `DownloadCard.kt`, `DownloadsScreen.kt`, `DownloadsViewModel.kt`
 - Kodi/DLNA playback controls implementados
 
 ### Decisiones Técnicas Recientes
+- **Swipe-to-delete pattern**:
+  - Parent mantiene estado de cuál item está revelado (`revealedId`)
+  - Scrim invisible intercepta toques fuera del item revelado
+  - Scrim debe estar ANTES del contenido en orden de declaración (NO usar zIndex)
+  - Dispositivos se cachean en DataStore y persisten entre sesiones/redes
 - **Login flow**: Cookies de WebView son independientes de API key guardada
-  - Logout solo limpia cookies (para re-obtener lista de keys)
-  - API key en DataStore sigue funcionando para la app
-- **API v4.1 cambios críticos:**
-  - Todos los endpoints cambiaron de GET a POST
-  - `/magnet/status` ya NO incluye archivos (usar `/magnet/files` por separado)
-  - Parámetros ahora van en body con `@Field` en lugar de `@Query`
+- **API v4.1**: Todos los endpoints POST, `/magnet/files` separado de `/magnet/status`
 - DLNA necesita DIDL-Lite metadata para Samsung TVs
 - SSDP puede fallar en algunos routers (MikroTik) - usar scan manual como alternativa
 
