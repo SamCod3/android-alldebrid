@@ -15,13 +15,13 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Key
-import androidx.compose.material.icons.filled.Logout
-import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.automirrored.rounded.Logout
+import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.Edit
+import androidx.compose.material.icons.rounded.Key
+import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -110,11 +110,11 @@ fun ApiKeyManagerScreen(
                 actions = {
                     if (uiState.isLoggedIn) {
                         IconButton(onClick = { showLogoutDialog = true }) {
-                            Icon(Icons.Default.Logout, "Logout")
+                            Icon(Icons.AutoMirrored.Rounded.Logout, "Logout")
                         }
                     }
                     IconButton(onClick = { viewModel.loadKeys() }) {
-                        Icon(Icons.Default.Refresh, "Refresh")
+                        Icon(Icons.Rounded.Refresh, "Refresh")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -129,7 +129,7 @@ fun ApiKeyManagerScreen(
                     onClick = { showCreateDialog = true },
                     containerColor = MaterialTheme.colorScheme.primary
                 ) {
-                    Icon(Icons.Default.Add, "Create new key")
+                    Icon(Icons.Rounded.Add, "Create new key")
                 }
             }
         }
@@ -156,7 +156,7 @@ fun ApiKeyManagerScreen(
                         verticalArrangement = Arrangement.Center
                     ) {
                         Icon(
-                            Icons.Default.Key,
+                            Icons.Rounded.Key,
                             contentDescription = null,
                             modifier = Modifier.height(64.dp),
                             tint = MaterialTheme.colorScheme.primary
@@ -375,7 +375,7 @@ private fun ApiKeyCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
-                    Icons.Default.Key,
+                    Icons.Rounded.Key,
                     contentDescription = null,
                     tint = if (isSelected) 
                         MaterialTheme.colorScheme.primary 
@@ -386,8 +386,9 @@ private fun ApiKeyCard(
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = name.ifBlank { "Unnamed" },
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                        )
                     )
                     Text(
                         text = "${apiKey.take(8)}...${apiKey.takeLast(4)}",
@@ -399,7 +400,7 @@ private fun ApiKeyCard(
                 }
                 if (isSelected) {
                     Icon(
-                        Icons.Default.Check,
+                        Icons.Rounded.Check,
                         contentDescription = "Selected",
                         tint = MaterialTheme.colorScheme.primary
                     )
@@ -417,7 +418,7 @@ private fun ApiKeyCard(
                         onClick = onSelect,
                         modifier = Modifier.weight(1f)
                     ) {
-                        Icon(Icons.Default.Check, null)
+                        Icon(Icons.Rounded.Check, null)
                         Spacer(Modifier.width(4.dp))
                         Text("Use")
                     }
@@ -432,11 +433,11 @@ private fun ApiKeyCard(
                 }
                 
                 IconButton(onClick = onRename) {
-                    Icon(Icons.Default.Edit, "Rename")
+                    Icon(Icons.Rounded.Edit, "Rename")
                 }
                 IconButton(onClick = onDelete) {
                     Icon(
-                        Icons.Default.Delete, 
+                        Icons.Rounded.Delete, 
                         "Delete",
                         tint = MaterialTheme.colorScheme.error
                     )

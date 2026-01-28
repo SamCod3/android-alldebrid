@@ -62,6 +62,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.samcod3.alldebrid.R
+import com.samcod3.alldebrid.ui.theme.Spacing
 import com.samcod3.alldebrid.data.model.Device
 import com.samcod3.alldebrid.ui.components.DeviceItem
 import com.samcod3.alldebrid.ui.components.SwipeToDeleteContainer
@@ -294,7 +295,7 @@ fun DevicesScreen(
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         CircularProgressIndicator()
-                        Spacer(Modifier.height(8.dp))
+                        Spacer(Modifier.height(Spacing.sm))
                         Text("Buscando dispositivos (SSDP)...", style = MaterialTheme.typography.bodyMedium)
                     }
                 }
@@ -304,7 +305,7 @@ fun DevicesScreen(
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         CircularProgressIndicator()
-                        Spacer(Modifier.height(8.dp))
+                        Spacer(Modifier.height(Spacing.sm))
                         Text("Buscando Kodi + SSDP...", style = MaterialTheme.typography.bodyMedium)
                     }
                 }
@@ -314,7 +315,7 @@ fun DevicesScreen(
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         CircularProgressIndicator()
-                        Spacer(Modifier.height(8.dp))
+                        Spacer(Modifier.height(Spacing.sm))
                         Text("Escaneando red (lento)...", style = MaterialTheme.typography.bodyMedium)
                     }
                 }
@@ -327,7 +328,7 @@ fun DevicesScreen(
                             text = stringResource(R.string.devices_empty),
                             style = MaterialTheme.typography.bodyLarge
                         )
-                        Spacer(Modifier.height(8.dp))
+                        Spacer(Modifier.height(Spacing.sm))
                         Text(
                             text = "Pulsa IP para escaneo manual",
                             style = MaterialTheme.typography.bodySmall,
@@ -350,8 +351,8 @@ fun DevicesScreen(
 
                         // LazyColumn AFTER (drawn above) - delete button receives taps
                         LazyColumn(
-                            contentPadding = PaddingValues(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                            contentPadding = PaddingValues(Spacing.lg),
+                            verticalArrangement = Arrangement.spacedBy(Spacing.md)
                         ) {
                             items(
                                 items = uiState.devices,
@@ -406,13 +407,13 @@ private fun ScanOptionFab(
         ) {
             Text(
                 text = label,
-                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm),
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
 
-        Spacer(modifier = Modifier.width(12.dp))
+        Spacer(modifier = Modifier.width(Spacing.md))
 
         // Mini FAB
         FloatingActionButton(

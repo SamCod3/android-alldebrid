@@ -10,9 +10,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Tv
-import androidx.compose.material.icons.filled.Videocam
+import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material.icons.rounded.Tv
+import androidx.compose.material.icons.rounded.Videocam
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -24,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.samcod3.alldebrid.data.model.Device
 import com.samcod3.alldebrid.data.model.DeviceType
+import com.samcod3.alldebrid.ui.theme.Spacing
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -52,13 +53,13 @@ fun DeviceItem(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(20.dp),
+                .padding(Spacing.xl),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
                 imageVector = when (device.type) {
-                    DeviceType.KODI -> Icons.Default.Tv
-                    DeviceType.DLNA -> Icons.Default.Videocam
+                    DeviceType.KODI -> Icons.Rounded.Tv
+                    DeviceType.DLNA -> Icons.Rounded.Videocam
                 },
                 contentDescription = null,
                 modifier = Modifier.size(40.dp),
@@ -68,7 +69,7 @@ fun DeviceItem(
                     MaterialTheme.colorScheme.primary
             )
             
-            Spacer(modifier = Modifier.width(16.dp))
+            Spacer(modifier = Modifier.width(Spacing.lg))
             
             Column(modifier = Modifier.weight(1f)) {
                 Text(
@@ -100,7 +101,7 @@ fun DeviceItem(
             
             if (isSelected) {
                 Icon(
-                    imageVector = Icons.Default.CheckCircle,
+                    imageVector = Icons.Rounded.CheckCircle,
                     contentDescription = "Selected",
                     tint = MaterialTheme.colorScheme.primary
                 )

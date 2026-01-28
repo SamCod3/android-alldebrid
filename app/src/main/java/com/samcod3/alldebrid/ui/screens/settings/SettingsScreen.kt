@@ -15,11 +15,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Login
-import androidx.compose.material.icons.filled.Logout
-import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.icons.automirrored.rounded.Login
+import androidx.compose.material.icons.automirrored.rounded.Logout
+import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.Visibility
+import androidx.compose.material.icons.rounded.VisibilityOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -109,7 +109,7 @@ fun SettingsScreen(
                         trailingIcon = {
                             IconButton(onClick = { apiKeyVisible = !apiKeyVisible }) {
                                 Icon(
-                                    imageVector = if (apiKeyVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                    imageVector = if (apiKeyVisible) Icons.Rounded.VisibilityOff else Icons.Rounded.Visibility,
                                     contentDescription = null
                                 )
                             }
@@ -123,7 +123,7 @@ fun SettingsScreen(
                         onClick = onNavigateToApiKeyManager,
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Icon(Icons.Default.Login, null)
+                        Icon(Icons.AutoMirrored.Rounded.Login, null)
                         Spacer(modifier = Modifier.width(8.dp))
                         Text("Manage API Keys")
                     }
@@ -142,7 +142,7 @@ fun SettingsScreen(
                             onClick = { viewModel.saveApiKey() },
                             modifier = Modifier.weight(1f)
                         ) {
-                            Icon(Icons.Default.Check, null)
+                            Icon(Icons.Rounded.Check, null)
                             Text(stringResource(R.string.settings_save))
                         }
                         
@@ -162,7 +162,7 @@ fun SettingsScreen(
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             Icon(
-                                imageVector = Icons.Default.Check,
+                                imageVector = Icons.Rounded.Check,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.primary
                             )
@@ -181,7 +181,7 @@ fun SettingsScreen(
                                 containerColor = MaterialTheme.colorScheme.error
                             )
                         ) {
-                            Icon(Icons.Default.Logout, null)
+                            Icon(Icons.AutoMirrored.Rounded.Logout, null)
                             Spacer(modifier = Modifier.width(8.dp))
                             Text("Cerrar sesión")
                         }
@@ -224,7 +224,7 @@ fun SettingsScreen(
                         trailingIcon = {
                             IconButton(onClick = { jackettKeyVisible = !jackettKeyVisible }) {
                                 Icon(
-                                    imageVector = if (jackettKeyVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                    imageVector = if (jackettKeyVisible) Icons.Rounded.VisibilityOff else Icons.Rounded.Visibility,
                                     contentDescription = null
                                 )
                             }
@@ -237,7 +237,7 @@ fun SettingsScreen(
                         onClick = { viewModel.saveJackettConfig() },
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Icon(Icons.Default.Check, null)
+                        Icon(Icons.Rounded.Check, null)
                         Text(stringResource(R.string.settings_save))
                     }
                 }
@@ -292,7 +292,7 @@ fun SettingsScreen(
                             onClick = { viewModel.saveCustomIpRange() },
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Icon(Icons.Default.Check, null)
+                            Icon(Icons.Rounded.Check, null)
                             Spacer(modifier = Modifier.width(8.dp))
                             Text("Save IP Range")
                         }

@@ -48,6 +48,7 @@ import androidx.compose.ui.unit.dp
 import com.samcod3.alldebrid.data.model.FlatFile
 import com.samcod3.alldebrid.data.model.Magnet
 import com.samcod3.alldebrid.ui.theme.StatusDownloading
+import com.samcod3.alldebrid.ui.util.formatSize
 import com.samcod3.alldebrid.ui.theme.StatusError
 import com.samcod3.alldebrid.ui.theme.StatusQueued
 import com.samcod3.alldebrid.ui.theme.StatusReady
@@ -575,11 +576,3 @@ private fun OtherFileItem(
     }
 }
 
-private fun formatSize(bytes: Long): String {
-    return when {
-        bytes >= 1_000_000_000 -> String.format("%.2f GB", bytes / 1_000_000_000.0)
-        bytes >= 1_000_000 -> String.format("%.2f MB", bytes / 1_000_000.0)
-        bytes >= 1_000 -> String.format("%.2f KB", bytes / 1_000.0)
-        else -> "$bytes B"
-    }
-}
