@@ -85,40 +85,46 @@ Sistema para mantener continuidad entre sesiones de desarrollo.
 - **Fase**: Migración completada a API v4.1
 
 ### Última Sesión (2026-01-28)
+- **Mejoras en flujo de login/API Keys**:
+  - Botón Logout con confirmación en API Keys Manager
+  - Limpia cookies al hacer logout para forzar re-login
+  - Refresh automático al volver de WebLogin (lifecycle observer)
+  - Si no hay keys tras login, vuelve automáticamente a API Keys para crear una
 - **Migración API v4 → v4.1** (la v4 dejó de funcionar)
   - GET → POST con `@FormUrlEncoded` en todos los endpoints
   - Nuevo endpoint `/magnet/files` (archivos ya no vienen en `/magnet/status`)
-  - Nueva constante `BASE_URL_V41` para endpoints v4.1
-- Estudio profundo del proyecto completado
-- CLAUDE.md creado con sistema /continue-dev y /save-dev
 
 ### Tareas Pendientes
 <!-- Marcar [x] cuando se complete, agregar nuevas al final -->
 - [ ] Verificar que todos los endpoints funcionan correctamente con v4.1
 - [ ] Probar flujo completo: listar magnets → ver archivos → reproducir
+- [ ] Revisar configuración MikroTik para SSDP/multicast (no detecta dispositivos)
 
 ### En Progreso
 <!-- Tarea actual que se estaba trabajando -->
 - (ninguna)
 
 ### Últimos Cambios Importantes
+- **Login/API Keys**: `ApiKeyManagerScreen.kt`, `ApiKeyManagerViewModel.kt`, `WebLoginScreen.kt`, `DashboardApi.kt`
 - **Migración API v4.1**: `AllDebridApi.kt`, `Magnet.kt`, `AllDebridRepository.kt`
 - UI actualizada: `DownloadCard.kt`, `DownloadsScreen.kt`, `DownloadsViewModel.kt`
 - Kodi/DLNA playback controls implementados
-- Title cleaning mejorado
 
 ### Decisiones Técnicas Recientes
+- **Login flow**: Cookies de WebView son independientes de API key guardada
+  - Logout solo limpia cookies (para re-obtener lista de keys)
+  - API key en DataStore sigue funcionando para la app
 - **API v4.1 cambios críticos:**
   - Todos los endpoints cambiaron de GET a POST
   - `/magnet/status` ya NO incluye archivos (usar `/magnet/files` por separado)
   - Parámetros ahora van en body con `@Field` en lugar de `@Query`
 - DLNA necesita DIDL-Lite metadata para Samsung TVs
-- Manejo especial de `IpAuthorizationRequiredException` para VPNs
+- SSDP puede fallar en algunos routers (MikroTik) - usar scan manual como alternativa
 
 ### Próximos Pasos Sugeridos
 <!-- Actualizar según la dirección del proyecto -->
 - Testear la app completamente con la nueva API
-- Verificar manejo de errores con los nuevos responses
+- Configurar MikroTik para permitir multicast/SSDP
 
 ---
 
