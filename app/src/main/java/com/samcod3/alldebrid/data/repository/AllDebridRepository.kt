@@ -4,6 +4,8 @@ import android.util.Log
 import com.samcod3.alldebrid.data.api.AllDebridApi
 import com.samcod3.alldebrid.data.datastore.SettingsDataStore
 import com.samcod3.alldebrid.data.model.AllDebridError
+import com.samcod3.alldebrid.data.model.FileNode
+import com.samcod3.alldebrid.data.model.FlatFile
 import com.samcod3.alldebrid.data.model.Link
 import com.samcod3.alldebrid.data.model.Magnet
 import com.samcod3.alldebrid.data.model.User
@@ -110,6 +112,64 @@ class AllDebridRepository @Inject constructor(
         } catch (e: Exception) {
             Result.failure(e)
         }
+    }
+    
+    /**
+     * Get files for a magnet using the new /v4/magnet/files endpoint.
+     * In API v4.1, files are no longer included in magnet/status response.
+     */
+    suspend fun getMagnetFiles(id: Long): Result<List<FlatFile>> {
+        return try {
+            val apiKey = getApiKey()
+            if (apiKey.isBlank()) {
+                return Result.failure(Exception("No API key configured"))
+            }
+            
+            val response = api.getMagnetFiles(apiKey = apiKey, id = id)
+            val body = response.body()
+            
+            if (response.isSuccessful && body?.status == "success") {
+                val magnetFiles = body.data?.magnets?.firstOrNull()
+                val flatFiles = magnetFiles?.files?.let { flattenFiles(it) } ?: emptyList()
+                Log.d(TAG, "Got ${flatFiles.size} files for magnet $id")
+                Result.success(flatFiles)
+            } else {
+                val error = body?.error
+                checkForIpError(error?.code, error?.message)
+                Result.failure(Exception(error?.message ?: "Failed to get files"))
+            }
+        } catch (e: IpAuthorizationRequiredException) {
+            Result.failure(e)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to get magnet files", e)
+            Result.failure(e)
+        }
+    }
+    
+    /**
+     * Flatten the nested file structure from API into a flat list.
+     * Handles recursive folder structures.
+     */
+    private fun flattenFiles(files: List<FileNode>, parentPath: String = ""): List<FlatFile> {
+        val result = mutableListOf<FlatFile>()
+        
+        for (item in files) {
+            val fullPath = if (parentPath.isEmpty()) item.name else "$parentPath/${item.name}"
+            
+            if (item.children != null) {
+                // It's a folder - recurse into children
+                result.addAll(flattenFiles(item.children, fullPath))
+            } else if (item.link != null) {
+                // It's a file with a link
+                result.add(FlatFile(
+                    filename = item.name,
+                    path = fullPath,
+                    size = item.size ?: 0,
+                    link = item.link
+                ))
+            }
+        }
+        return result
     }
     
     /**

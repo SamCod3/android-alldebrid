@@ -113,6 +113,14 @@ class DownloadsViewModel @Inject constructor(
                 }
         }
     }
+    
+    /**
+     * Fetch files for a magnet using the new /v4/magnet/files endpoint.
+     * Called by DownloadCard when user opens the bottom sheet.
+     */
+    suspend fun fetchMagnetFiles(magnetId: Long): Result<List<com.samcod3.alldebrid.data.model.FlatFile>> {
+        return repository.getMagnetFiles(magnetId)
+    }
 
     fun deleteMagnet(id: Long) {
         viewModelScope.launch {

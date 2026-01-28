@@ -514,6 +514,7 @@ fun DownloadsScreen(
                                         viewModel.copyLinkToClipboard(context, link)
                                     },
                                     onPlay = { link, title -> viewModel.playLink(link, title) },
+                                    onFetchFiles = { magnetId -> viewModel.fetchMagnetFiles(magnetId) },
                                     refreshCallback = { viewModel.refreshSilent() }
                                 )
                             }

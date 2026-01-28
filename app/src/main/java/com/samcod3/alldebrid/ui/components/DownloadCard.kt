@@ -37,21 +37,24 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.samcod3.alldebrid.data.model.FlatFile
 import com.samcod3.alldebrid.data.model.Magnet
-import com.samcod3.alldebrid.data.model.MagnetLink
 import com.samcod3.alldebrid.ui.theme.StatusDownloading
 import com.samcod3.alldebrid.ui.theme.StatusError
 import com.samcod3.alldebrid.ui.theme.StatusQueued
 import com.samcod3.alldebrid.ui.theme.StatusReady
+import kotlinx.coroutines.launch
 
 // Media file extensions
 private val VIDEO_EXTENSIONS = setOf("mp4", "mkv", "avi", "mov", "wmv", "flv", "webm", "m4v", "mpg", "mpeg", "3gp")
@@ -69,12 +72,19 @@ fun DownloadCard(
     onDelete: () -> Unit,
     onCopyLink: (String) -> Unit,
     onPlay: (link: String, title: String) -> Unit,
+    onFetchFiles: suspend (Long) -> Result<List<FlatFile>>,
     refreshCallback: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     var showBottomSheet by remember { mutableStateOf(false) }
     var showAllFiles by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val scope = rememberCoroutineScope()
+    
+    // File loading state
+    var files by remember { mutableStateOf<List<FlatFile>>(emptyList()) }
+    var isLoadingFiles by remember { mutableStateOf(false) }
+    var filesError by remember { mutableStateOf<String?>(null) }
     
     val statusColor = when (magnet.status) {
         "Ready" -> StatusReady
@@ -83,10 +93,27 @@ fun DownloadCard(
         else -> StatusError
     }
     
-    // Filter links
-    val mediaLinks = magnet.links.filter { it.filename.isMediaFile() }
-    val otherLinks = magnet.links.filter { !it.filename.isMediaFile() }
-    val hasOtherFiles = otherLinks.isNotEmpty()
+    // Filter files into media and other
+    val mediaFiles = files.filter { it.filename.isMediaFile() }
+    val otherFiles = files.filter { !it.filename.isMediaFile() }
+    val hasOtherFiles = otherFiles.isNotEmpty()
+
+    // Fetch files when bottom sheet opens
+    LaunchedEffect(showBottomSheet) {
+        if (showBottomSheet && magnet.status == "Ready" && files.isEmpty()) {
+            isLoadingFiles = true
+            filesError = null
+            onFetchFiles(magnet.id)
+                .onSuccess { fetchedFiles ->
+                    files = fetchedFiles
+                    isLoadingFiles = false
+                }
+                .onFailure { error ->
+                    filesError = error.message
+                    isLoadingFiles = false
+                }
+        }
+    }
 
     // BottomSheet for file list
     if (showBottomSheet) {
@@ -112,7 +139,7 @@ fun DownloadCard(
                 // Progress Header for Downloading items
                 if (magnet.status != "Ready") {
                     // Auto-refresh every 10 seconds while sheet is open
-                    androidx.compose.runtime.LaunchedEffect(Unit) {
+                    LaunchedEffect(Unit) {
                         while(true) {
                             kotlinx.coroutines.delay(10000)
                             refreshCallback?.invoke()
@@ -223,7 +250,7 @@ fun DownloadCard(
                     Spacer(modifier = Modifier.height(16.dp))
                 } else {
                     Text(
-                        text = "${formatSize(magnet.size)} • ${magnet.links.size} files",
+                        text = "${formatSize(magnet.size)} • ${files.size} files",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -233,69 +260,106 @@ fun DownloadCard(
                 HorizontalDivider()
                 Spacer(modifier = Modifier.height(16.dp))
                 
-                // Media files
-                if (mediaLinks.isNotEmpty()) {
-                    Text(
-                        text = "Media Files (${mediaLinks.size})",
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        mediaLinks.forEach { link ->
-                            LinkItem(
-                                link = link,
-                                onClick = { 
-                                    onPlay(link.link, link.filename)
-                                    showBottomSheet = false
-                                }
-                            )
-                        }
-                    }
-                }
-                
-                // Other files with toggle
-                if (hasOtherFiles) {
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                // Loading state
+                if (isLoadingFiles) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(32.dp),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Text(
-                            text = "Other Files (${otherLinks.size})",
-                            style = MaterialTheme.typography.labelLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        TextButton(onClick = { showAllFiles = !showAllFiles }) {
-                            Icon(
-                                imageVector = if (showAllFiles) Icons.Rounded.VisibilityOff else Icons.Rounded.Visibility,
-                                contentDescription = null,
-                                modifier = Modifier.size(16.dp)
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            CircularProgressIndicator()
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = "Loading files...",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(if (showAllFiles) "Hide" else "Show")
                         }
                     }
-                    
-                    if (showAllFiles) {
+                } else if (filesError != null) {
+                    Text(
+                        text = "Error: $filesError",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.padding(16.dp)
+                    )
+                } else {
+                    // Media files
+                    if (mediaFiles.isNotEmpty()) {
                         Text(
-                            text = "(long-press to copy link)",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                            modifier = Modifier.padding(bottom = 8.dp)
+                            text = "Media Files (${mediaFiles.size})",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.primary
                         )
+                        Spacer(modifier = Modifier.height(8.dp))
                         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            otherLinks.forEach { link ->
-                                OtherFileItem(
-                                    link = link,
-                                    onLongPress = { 
-                                        onCopyLink(link.link)
-                                        // Don't close sheet - user can close manually
+                            mediaFiles.forEach { file ->
+                                FileLinkItem(
+                                    file = file,
+                                    onClick = { 
+                                        onPlay(file.link, file.filename)
+                                        showBottomSheet = false
                                     }
                                 )
                             }
                         }
+                    }
+                    
+                    // Other files with toggle
+                    if (hasOtherFiles) {
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Other Files (${otherFiles.size})",
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            TextButton(onClick = { showAllFiles = !showAllFiles }) {
+                                Icon(
+                                    imageVector = if (showAllFiles) Icons.Rounded.VisibilityOff else Icons.Rounded.Visibility,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(if (showAllFiles) "Hide" else "Show")
+                            }
+                        }
+                        
+                        if (showAllFiles) {
+                            Text(
+                                text = "(long-press to copy link)",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                                modifier = Modifier.padding(bottom = 8.dp)
+                            )
+                            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                otherFiles.forEach { file ->
+                                    OtherFileItem(
+                                        file = file,
+                                        onLongPress = { 
+                                            onCopyLink(file.link)
+                                            // Don't close sheet - user can close manually
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    
+                    // Empty state
+                    if (files.isEmpty() && !isLoadingFiles && magnet.status == "Ready") {
+                        Text(
+                            text = "No files found",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(16.dp)
+                        )
                     }
                 }
             }
@@ -306,7 +370,9 @@ fun DownloadCard(
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .clickable(enabled = magnet.links.isNotEmpty() || magnet.status != "Ready") { showBottomSheet = true },
+            .clickable(enabled = magnet.status == "Ready" || magnet.status != "Ready") { 
+                showBottomSheet = true 
+            },
         shape = MaterialTheme.shapes.medium, // Reduced radius
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant
@@ -354,18 +420,21 @@ fun DownloadCard(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
 
-                        // Media count
-                        if (mediaLinks.isNotEmpty()) {
-                            androidx.compose.material3.Surface(
-                                shape = MaterialTheme.shapes.extraSmall,
-                                color = MaterialTheme.colorScheme.primaryContainer
-                            ) {
-                                Text(
-                                    text = "${mediaLinks.size} media",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                )
+                        // Media count (show if files loaded)
+                        if (files.isNotEmpty()) {
+                            val mediaCount = files.count { it.filename.isMediaFile() }
+                            if (mediaCount > 0) {
+                                androidx.compose.material3.Surface(
+                                    shape = MaterialTheme.shapes.extraSmall,
+                                    color = MaterialTheme.colorScheme.primaryContainer
+                                ) {
+                                    Text(
+                                        text = "$mediaCount media",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                    )
+                                }
                             }
                         }
                     }
@@ -417,8 +486,8 @@ fun DownloadCard(
 }
 
 @Composable
-private fun LinkItem(
-    link: MagnetLink,
+private fun FileLinkItem(
+    file: FlatFile,
     onClick: () -> Unit
 ) {
     androidx.compose.material3.Surface(
@@ -450,14 +519,14 @@ private fun LinkItem(
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = link.filename,
+                    text = file.filename,
                     style = MaterialTheme.typography.bodyMedium,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
-                    text = formatSize(link.size),
+                    text = formatSize(file.size),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -469,7 +538,7 @@ private fun LinkItem(
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun OtherFileItem(
-    link: MagnetLink,
+    file: FlatFile,
     onLongPress: () -> Unit
 ) {
     androidx.compose.material3.Surface(
@@ -496,14 +565,14 @@ private fun OtherFileItem(
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 // Fallback: extract filename from link URL if filename is empty or blank
-                val displayName = link.filename.trim().ifEmpty { 
+                val displayName = file.filename.trim().ifEmpty { 
                     try {
                         java.net.URLDecoder.decode(
-                            link.link.substringAfterLast('/').substringBefore('?'), 
+                            file.link.substringAfterLast('/').substringBefore('?'), 
                             "UTF-8"
                         ).ifEmpty { "Unknown file" }
                     } catch (e: Exception) {
-                        link.link.substringAfterLast('/').substringBefore('?').ifEmpty { "Unknown file" }
+                        file.link.substringAfterLast('/').substringBefore('?').ifEmpty { "Unknown file" }
                     }
                 }
                 Text(
@@ -514,7 +583,7 @@ private fun OtherFileItem(
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f) // Muted
                 )
                 Text(
-                    text = formatSize(link.size),
+                    text = formatSize(file.size),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                 )
