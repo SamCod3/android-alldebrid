@@ -82,50 +82,54 @@ Sistema para mantener continuidad entre sesiones de desarrollo.
 
 ### Estado Actual
 - **Branch**: `dev-ui`
-- **Fase**: UI refinements + Swipe-to-delete
+- **Fase**: Refactorización UI Material 3
 
 ### Última Sesión (2026-01-28)
-- **Skills /save-dev y /continue-dev**:
-  - Creados como comandos personalizados de Claude Code
-  - Ubicación correcta: `.claude/commands/` (no `.claude/skills/`)
-  - Permiten guardar y retomar estado entre sesiones
-- **Swipe-to-delete completado**:
-  - Fix del scrim en DevicesScreen (sin zIndex, declarar ANTES del contenido)
-  - Botón eliminar funciona correctamente
+- **Refactorización UI completa (3 fases)**:
+  - Fase 1: Iconos unificados a `Icons.Rounded` (DeviceItem, SettingsScreen, ApiKeyManagerScreen)
+  - Fase 2: Creado `FormatUtils.kt`, corregido bug doble botón en SearchResultItem, fix fontWeight
+  - Fase 3: Creado `Spacing.kt` con escala estandarizada (xs=4, sm=8, md=12, lg=16, xl=20, xxl=24)
+- **Archivos nuevos**:
+  - `ui/util/FormatUtils.kt` - función `formatSize()` centralizada
+  - `ui/theme/Spacing.kt` - escala de spacing consistente
+- **Iconos AutoMirrored**: Login/Logout usan `Icons.AutoMirrored.Rounded` para soporte RTL
 
 ### Tareas Pendientes
 <!-- Marcar [x] cuando se complete, agregar nuevas al final -->
+- [ ] Commitear refactorización UI (9 archivos modificados, 2 nuevos)
+- [ ] Commitear scan híbrido (DeviceDiscoveryManager, DeviceRepository, DevicesViewModel)
 - [ ] Verificar que todos los endpoints funcionan correctamente con v4.1
 - [ ] Probar flujo completo: listar magnets → ver archivos → reproducir
-- [ ] Revisar configuración MikroTik para SSDP/multicast (no detecta dispositivos)
 
 ### En Progreso
 <!-- Tarea actual que se estaba trabajando -->
+- **Refactorización UI (sin commit)**: 9 archivos modificados + 2 nuevos
+  - Componentes: DeviceItem, DownloadCard, SearchResultItem
+  - Screens: DevicesScreen, SettingsScreen, ApiKeyManagerScreen
+  - Theme: Spacing.kt (nuevo)
+  - Utils: FormatUtils.kt (nuevo)
 - **Scan híbrido (sin commit)**: DeviceDiscoveryManager.kt, DeviceRepository.kt, DevicesViewModel.kt
-  - 245 líneas nuevas para scan Kodi + SSDP en paralelo
-  - Pendiente de probar y commitear
 
 ### Últimos Cambios Importantes
-- **Swipe-to-delete**: `SwipeToDelete.kt` (nuevo), `DownloadsScreen.kt`, `DevicesScreen.kt`, `DownloadCard.kt`
-- **Login/API Keys**: `ApiKeyManagerScreen.kt`, `ApiKeyManagerViewModel.kt`, `WebLoginScreen.kt`, `DashboardApi.kt`
-- **Migración API v4.1**: `AllDebridApi.kt`, `Magnet.kt`, `AllDebridRepository.kt`
-- Kodi/DLNA playback controls implementados
+- **Refactorización UI M3**: Iconos Rounded, Spacing consistente, FormatUtils centralizado
+- **Bug fix**: Doble botón anidado en SearchResultItem (IconButton dentro de FilledIconButton)
+- **Swipe-to-delete**: `SwipeToDelete.kt`, `DownloadsScreen.kt`, `DevicesScreen.kt`
+- **Login/API Keys**: `ApiKeyManagerScreen.kt`, `ApiKeyManagerViewModel.kt`, `WebLoginScreen.kt`
 
 ### Decisiones Técnicas Recientes
-- **Swipe-to-delete pattern**:
-  - Parent mantiene estado de cuál item está revelado (`revealedId`)
-  - Scrim invisible intercepta toques fuera del item revelado
-  - Scrim debe estar ANTES del contenido en orden de declaración (NO usar zIndex)
-  - Dispositivos se cachean en DataStore y persisten entre sesiones/redes
-- **Login flow**: Cookies de WebView son independientes de API key guardada
-- **API v4.1**: Todos los endpoints POST, `/magnet/files` separado de `/magnet/status`
-- DLNA necesita DIDL-Lite metadata para Samsung TVs
-- SSDP puede fallar en algunos routers (MikroTik) - usar scan manual como alternativa
+- **Icons Material 3**:
+  - Usar `Icons.Rounded` para consistencia visual
+  - Usar `Icons.AutoMirrored.Rounded` para iconos direccionales (Login, Logout, ArrowBack)
+  - Mantener `Icons.Outlined` solo para estados unselected en BottomNav
+- **Spacing scale**: Basada en 4dp (xs=4, sm=8, md=12, lg=16, xl=20, xxl=24, xxxl=32)
+- **formatSize()**: Centralizado en `ui/util/FormatUtils.kt` para evitar duplicación
+- **Swipe-to-delete pattern**: Scrim antes del contenido, sin zIndex
 
 ### Próximos Pasos Sugeridos
 <!-- Actualizar según la dirección del proyecto -->
-- Testear la app completamente con la nueva API
-- Configurar MikroTik para permitir multicast/SSDP
+- Commitear los cambios de UI en 2 commits separados (UI refactor + scan híbrido)
+- Extender Spacing a más componentes gradualmente
+- Testear la app completamente
 
 ---
 
