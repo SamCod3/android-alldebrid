@@ -70,6 +70,171 @@ class DeviceDiscoveryManager @Inject constructor(
     }
     
     /**
+     * Hybrid discovery - SSDP + quick Kodi-only subnet scan in parallel.
+     * Best option when router doesn't support multicast (SSDP fails).
+     * Faster than manual scan (~5-8 seconds) because it only checks Kodi port 8080.
+     */
+    suspend fun discoverHybrid(): List<Device> = coroutineScope {
+        Log.d(TAG, "Starting hybrid discovery (SSDP + quick Kodi scan)...")
+
+        // Run SSDP and quick Kodi scan in parallel
+        val ssdpJob = async { discoverSsdp() }
+        val kodiScanJob = async { discoverKodiQuick() }
+
+        val ssdpDevices = ssdpJob.await()
+        val kodiDevices = kodiScanJob.await()
+
+        Log.d(TAG, "Hybrid: SSDP found ${ssdpDevices.size}, Kodi scan found ${kodiDevices.size}")
+
+        val allDevices = mutableListOf<Device>()
+        allDevices.addAll(ssdpDevices)
+        allDevices.addAll(kodiDevices)
+
+        // Add saved device if not found
+        val savedDevice = settingsDataStore.selectedDevice.first()
+        if (savedDevice != null) {
+            val alreadyFound = allDevices.any {
+                it.address == savedDevice.address && it.port == savedDevice.port
+            }
+            if (!alreadyFound) {
+                allDevices.add(savedDevice)
+            }
+        }
+
+        Log.d(TAG, "Hybrid discovery completed, found ${allDevices.distinctBy { it.address }.size} unique devices")
+        allDevices.distinctBy { it.address }
+    }
+
+    /**
+     * Quick subnet scan for Kodi + DLNA with short timeouts.
+     * Checks Kodi port 8080 and common DLNA ports.
+     * Auto-detects WiFi subnet from phone's network interface.
+     */
+    private suspend fun discoverKodiQuick(): List<Device> = withContext(Dispatchers.IO) {
+        val devices = mutableListOf<Device>()
+
+        val localIpPrefix = getLocalIpPrefix()
+        if (localIpPrefix == null) {
+            Log.w(TAG, "Could not determine local network prefix for quick scan")
+            return@withContext devices
+        }
+
+        Log.d(TAG, "Quick Kodi+DLNA scan on network: $localIpPrefix.x")
+
+        // Higher concurrency for speed (50 parallel connections)
+        val semaphore = Semaphore(50)
+
+        coroutineScope {
+            val scanJobs = (1..254).map { i ->
+                async {
+                    semaphore.withPermit {
+                        checkDeviceQuick("$localIpPrefix.$i")
+                    }
+                }
+            }
+
+            scanJobs.awaitAll().filterNotNull().forEach { device ->
+                devices.add(device)
+            }
+        }
+
+        devices
+    }
+
+    /**
+     * Quick device check - Kodi first, then DLNA ports
+     */
+    private suspend fun checkDeviceQuick(ip: String): Device? {
+        // 1. Check Kodi first (most common)
+        checkKodiQuick(ip)?.let { return it }
+
+        // 2. Check common DLNA ports
+        checkDlnaQuick(ip)?.let { return it }
+
+        return null
+    }
+
+    /**
+     * Quick Kodi check - 300ms timeout
+     */
+    private suspend fun checkKodiQuick(ip: String): Device? = withTimeoutOrNull(350) {
+        try {
+            val socket = java.net.Socket()
+            val address = java.net.InetSocketAddress(ip, KODI_DEFAULT_PORT)
+            socket.connect(address, 250)
+            socket.close()
+
+            // Port is open, verify it's Kodi
+            val url = "http://$ip:$KODI_DEFAULT_PORT/jsonrpc"
+            val response = kodiApi.sendCommand(url, KodiCommands.ping())
+
+            if (response.isSuccessful && response.body()?.result == "pong") {
+                Log.d(TAG, "Quick scan found Kodi at $ip")
+                val kodiName = getKodiSystemName(ip, KODI_DEFAULT_PORT) ?: "Kodi"
+
+                Device(
+                    id = UUID.randomUUID().toString(),
+                    name = kodiName,
+                    address = ip,
+                    port = KODI_DEFAULT_PORT,
+                    type = DeviceType.KODI
+                )
+            } else null
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    /**
+     * Quick DLNA check - tries common ports with short timeout
+     */
+    private suspend fun checkDlnaQuick(ip: String): Device? {
+        // Only check the most common DLNA ports for speed
+        val quickPorts = listOf(9197, 8060, 7676)
+
+        for (port in quickPorts) {
+            try {
+                val device = withTimeoutOrNull(300) {
+                    val socket = java.net.Socket()
+                    val address = java.net.InetSocketAddress(ip, port)
+                    socket.connect(address, 200)
+                    socket.close()
+
+                    Log.d(TAG, "Quick scan found open port $port at $ip")
+
+                    // Try to get device name
+                    val endpoints = listOf(
+                        "http://$ip:$port/dmr",
+                        "http://$ip:$port/description.xml"
+                    )
+
+                    var friendlyName: String? = null
+                    for (endpoint in endpoints) {
+                        friendlyName = fetchDeviceFriendlyName(endpoint)
+                        if (friendlyName != null) break
+                    }
+
+                    val deviceName = friendlyName ?: "DLNA ($ip)"
+                    Log.d(TAG, "Quick scan found DLNA: $deviceName at $ip:$port")
+
+                    Device(
+                        id = UUID.randomUUID().toString(),
+                        name = deviceName,
+                        address = ip,
+                        port = port,
+                        type = DeviceType.DLNA,
+                        controlUrl = "http://$ip:$port/"
+                    )
+                }
+                if (device != null) return device
+            } catch (e: Exception) {
+                // Continue to next port
+            }
+        }
+        return null
+    }
+
+    /**
      * Slow manual discovery - scans all IPs in subnet.
      * Use only when SSDP doesn't find devices.
      * This is much slower (~30-60 seconds).
@@ -443,21 +608,39 @@ class DeviceDiscoveryManager @Inject constructor(
     
     private fun getLocalIpPrefix(): String? {
         try {
+            val candidates = mutableListOf<Pair<String, String>>() // (interfaceName, ipPrefix)
+
             val interfaces = NetworkInterface.getNetworkInterfaces()
             while (interfaces.hasMoreElements()) {
                 val networkInterface = interfaces.nextElement()
                 if (networkInterface.isLoopback || !networkInterface.isUp) continue
-                
+
                 val addresses = networkInterface.inetAddresses
                 while (addresses.hasMoreElements()) {
                     val address = addresses.nextElement()
                     if (address.isSiteLocalAddress && !address.isLoopbackAddress) {
                         val ip = address.hostAddress ?: continue
-                        if (ip.contains(".")) {
-                            return ip.substringBeforeLast(".")
+                        if (ip.contains(".") && !ip.contains(":")) { // IPv4 only
+                            val prefix = ip.substringBeforeLast(".")
+                            candidates.add(networkInterface.name to prefix)
+                            Log.d(TAG, "Found network: ${networkInterface.name} -> $prefix.x")
                         }
                     }
                 }
+            }
+
+            // Prioritize WiFi interfaces (wlan0, wlan1, etc.)
+            val wifiInterface = candidates.find { it.first.startsWith("wlan") }
+            if (wifiInterface != null) {
+                Log.d(TAG, "Using WiFi interface: ${wifiInterface.first} -> ${wifiInterface.second}.x")
+                return wifiInterface.second
+            }
+
+            // Fallback to first available
+            val first = candidates.firstOrNull()
+            if (first != null) {
+                Log.d(TAG, "Using fallback interface: ${first.first} -> ${first.second}.x")
+                return first.second
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error getting local IP", e)

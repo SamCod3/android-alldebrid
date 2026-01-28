@@ -61,6 +61,23 @@ class DeviceRepository @Inject constructor(
     }
     
     /**
+     * Hybrid discovery - SSDP + quick Kodi-only subnet scan.
+     * Best when router doesn't support multicast but you mainly use Kodi.
+     */
+    suspend fun discoverDevicesHybrid(): Result<List<Device>> {
+        return try {
+            val devices = discoveryManager.discoverHybrid()
+            val existing = _devices.value
+            val merged = mergeDevices(existing, devices)
+            _devices.value = merged
+            settingsDataStore.saveDiscoveredDevices(merged)
+            Result.success(merged)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    /**
      * Manual discovery - slower but scans all IPs in subnet.
      * Use when SSDP doesn't find devices.
      */
@@ -123,8 +140,8 @@ class DeviceRepository @Inject constructor(
     suspend fun renameDevice(device: Device, customName: String?) {
         val updatedDevice = device.copy(customName = customName)
         // Update in devices list
-        val updatedDevices = _devices.value.map { 
-            if (it.id == device.id) updatedDevice else it 
+        val updatedDevices = _devices.value.map {
+            if (it.id == device.id) updatedDevice else it
         }
         _devices.value = updatedDevices
         // Save to cache
@@ -133,6 +150,20 @@ class DeviceRepository @Inject constructor(
         val currentSelected = settingsDataStore.selectedDevice.first()
         if (currentSelected?.id == device.id) {
             settingsDataStore.saveSelectedDevice(updatedDevice)
+        }
+    }
+
+    suspend fun deleteDevice(device: Device) {
+        // Remove from devices list
+        val updatedDevices = _devices.value.filter { it.id != device.id }
+        _devices.value = updatedDevices
+        // Save to cache
+        settingsDataStore.saveDiscoveredDevices(updatedDevices)
+        // Clear selected device if this was the selected one
+        val currentSelected = settingsDataStore.selectedDevice.first()
+        if (currentSelected?.id == device.id ||
+            (currentSelected?.address == device.address && currentSelected.port == device.port)) {
+            settingsDataStore.clearSelectedDevice()
         }
     }
     

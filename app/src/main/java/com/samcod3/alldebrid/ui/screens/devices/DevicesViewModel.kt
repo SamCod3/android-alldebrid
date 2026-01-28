@@ -15,6 +15,7 @@ import javax.inject.Inject
 
 data class DevicesUiState(
     val isDiscovering: Boolean = false,
+    val isHybridScanning: Boolean = false,
     val isManualScanning: Boolean = false,
     val devices: List<Device> = emptyList(),
     val selectedDevice: Device? = null,
@@ -66,12 +67,30 @@ class DevicesViewModel @Inject constructor(
     }
     
     /**
+     * Hybrid scan - SSDP + quick Kodi subnet scan in parallel.
+     * Best for routers that don't forward multicast (SSDP fails).
+     */
+    fun discoverHybrid() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isHybridScanning = true, error = null) }
+
+            deviceRepository.discoverDevicesHybrid()
+                .onSuccess { devices ->
+                    _uiState.update { it.copy(isHybridScanning = false) }
+                }
+                .onFailure { error ->
+                    _uiState.update { it.copy(isHybridScanning = false, error = error.message) }
+                }
+        }
+    }
+
+    /**
      * Manual IP range scan - slower but finds devices that don't respond to SSDP
      */
     fun discoverManual() {
         viewModelScope.launch {
             _uiState.update { it.copy(isManualScanning = true, error = null) }
-            
+
             deviceRepository.discoverDevicesManual()
                 .onSuccess { devices ->
                     _uiState.update { it.copy(isManualScanning = false) }
@@ -91,6 +110,12 @@ class DevicesViewModel @Inject constructor(
     fun renameDevice(device: Device, customName: String?) {
         viewModelScope.launch {
             deviceRepository.renameDevice(device, customName)
+        }
+    }
+
+    fun deleteDevice(device: Device) {
+        viewModelScope.launch {
+            deviceRepository.deleteDevice(device)
         }
     }
 }
