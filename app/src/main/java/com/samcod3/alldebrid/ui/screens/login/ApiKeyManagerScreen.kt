@@ -20,6 +20,7 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Key
+import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -42,12 +43,16 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -69,10 +74,21 @@ fun ApiKeyManagerScreen(
     var showCreateDialog by remember { mutableStateOf(false) }
     var showRenameDialog by remember { mutableStateOf<String?>(null) }
     var showDeleteDialog by remember { mutableStateOf<String?>(null) }
+    var showLogoutDialog by remember { mutableStateOf(false) }
     var newKeyName by remember { mutableStateOf("") }
 
-    LaunchedEffect(Unit) {
-        viewModel.loadKeys()
+    // Refresh when screen comes to foreground (e.g., returning from WebLogin)
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                viewModel.refreshLoginState()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
     }
 
     LaunchedEffect(uiState.message) {
@@ -92,6 +108,11 @@ fun ApiKeyManagerScreen(
                     }
                 },
                 actions = {
+                    if (uiState.isLoggedIn) {
+                        IconButton(onClick = { showLogoutDialog = true }) {
+                            Icon(Icons.Default.Logout, "Logout")
+                        }
+                    }
                     IconButton(onClick = { viewModel.loadKeys() }) {
                         Icon(Icons.Default.Refresh, "Refresh")
                     }
@@ -297,6 +318,30 @@ fun ApiKeyManagerScreen(
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteDialog = null }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
+    // Logout Dialog
+    if (showLogoutDialog) {
+        AlertDialog(
+            onDismissRequest = { showLogoutDialog = false },
+            title = { Text("Logout?") },
+            text = { Text("This will clear your session. You'll need to login again to manage API keys.") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        viewModel.logout()
+                        showLogoutDialog = false
+                    }
+                ) {
+                    Text("Logout")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showLogoutDialog = false }) {
                     Text("Cancel")
                 }
             }

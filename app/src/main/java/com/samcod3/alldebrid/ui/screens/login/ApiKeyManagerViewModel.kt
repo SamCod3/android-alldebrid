@@ -151,4 +151,17 @@ class ApiKeyManagerViewModel @Inject constructor(
             loadKeys()
         }
     }
+
+    fun logout() {
+        // Clear cookies
+        android.webkit.CookieManager.getInstance().apply {
+            removeAllCookies(null)
+            flush()
+        }
+        // Update UI - clear keys and set logged out
+        _uiState.update { it.copy(
+            isLoggedIn = false,
+            keys = emptyList()
+        )}
+    }
 }

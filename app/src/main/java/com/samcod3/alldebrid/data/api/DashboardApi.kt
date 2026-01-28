@@ -32,6 +32,18 @@ class DashboardApi @Inject constructor() {
         val cookies = CookieManager.getInstance().getCookie(BASE_URL)
         return cookies?.contains("uid=") == true
     }
+
+    /**
+     * Clear all AllDebrid cookies to force re-login
+     */
+    fun clearCookies() {
+        val cookieManager = CookieManager.getInstance()
+        // Remove all cookies (most reliable method)
+        cookieManager.removeAllCookies { success ->
+            Log.d(TAG, "Cookies removed: $success")
+        }
+        cookieManager.flush()
+    }
     
     /**
      * Fetch all API keys from the dashboard

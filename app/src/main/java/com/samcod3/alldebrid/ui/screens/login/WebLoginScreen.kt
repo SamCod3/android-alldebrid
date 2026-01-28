@@ -24,6 +24,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -46,6 +47,14 @@ fun WebLoginScreen(
     var isExtractingKey by remember { mutableStateOf(false) }
     var extractionFailed by remember { mutableStateOf(false) }
     var extractionStartTime by remember { mutableStateOf(0L) }
+    var noKeysFound by remember { mutableStateOf(false) }
+
+    // If no keys found, go back immediately to create one
+    LaunchedEffect(noKeysFound) {
+        if (noKeysFound) {
+            onBack()
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -135,7 +144,8 @@ fun WebLoginScreen(
                     },
                     onApiKeyExtracted = onApiKeyExtracted,
                     onStatusChange = { statusText = it },
-                    onExtractionFailed = { extractionFailed = true }
+                    onExtractionFailed = { extractionFailed = true },
+                    onNoKeysFound = { noKeysFound = true }
                 )
             }
         }
@@ -150,7 +160,8 @@ private fun WebViewContent(
     onLoginDetected: () -> Unit,
     onApiKeyExtracted: (String) -> Unit,
     onStatusChange: (String) -> Unit,
-    onExtractionFailed: () -> Unit
+    onExtractionFailed: () -> Unit,
+    onNoKeysFound: () -> Unit
 ) {
     var webView by remember { mutableStateOf<WebView?>(null) }
     var hasDetectedLogin by remember { mutableStateOf(false) }
@@ -175,10 +186,17 @@ private fun WebViewContent(
                 // JavaScript interface for extracting API key
                 addJavascriptInterface(
                     ApiKeyExtractor { apiKey ->
-                        if (apiKey == "NO_KEYS_FOUND" || apiKey.startsWith("ERROR:")) {
-                            onExtractionFailed()
-                        } else {
-                            onApiKeyExtracted(apiKey)
+                        when {
+                            apiKey == "NO_KEYS_FOUND" -> {
+                                // No keys exist, go back to API Keys screen to create one
+                                onNoKeysFound()
+                            }
+                            apiKey.startsWith("ERROR:") -> {
+                                onExtractionFailed()
+                            }
+                            else -> {
+                                onApiKeyExtracted(apiKey)
+                            }
                         }
                     },
                     "AndroidApp"
