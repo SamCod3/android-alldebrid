@@ -106,7 +106,9 @@ Sistema para mantener continuidad entre sesiones de desarrollo.
 
 ### En Progreso
 <!-- Tarea actual que se estaba trabajando -->
-- (ninguna)
+- **Scan híbrido (sin commit)**: DeviceDiscoveryManager.kt, DeviceRepository.kt, DevicesViewModel.kt
+  - 245 líneas nuevas para scan Kodi + SSDP en paralelo
+  - Pendiente de probar y commitear
 
 ### Últimos Cambios Importantes
 - **Swipe-to-delete**: `SwipeToDelete.kt` (nuevo), `DownloadsScreen.kt`, `DevicesScreen.kt`, `DownloadCard.kt`
