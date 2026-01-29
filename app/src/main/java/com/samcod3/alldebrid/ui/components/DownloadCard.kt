@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -15,21 +16,35 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.InsertDriveFile
+import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.FolderOpen
 import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material.icons.rounded.Visibility
 import androidx.compose.material.icons.rounded.VisibilityOff
+import androidx.compose.material.icons.rounded.Warning
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -42,6 +57,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -72,11 +89,17 @@ fun DownloadCard(
     onCopyLink: (String) -> Unit,
     onPlay: (link: String, title: String) -> Unit,
     onFetchFiles: suspend (Long) -> Result<List<FlatFile>>,
+    onDelete: ((Long) -> Unit)? = null,
+    onShareLink: ((link: String, filename: String) -> Unit)? = null,
+    showDeleteButton: Boolean = false,
     refreshCallback: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
+    val haptic = LocalHapticFeedback.current
+    var isLoadingForShare by remember { mutableStateOf(false) }
     var showBottomSheet by remember { mutableStateOf(false) }
     var showAllFiles by remember { mutableStateOf(false) }
+    var showDeleteConfirmation by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val scope = rememberCoroutineScope()
     
@@ -114,271 +137,504 @@ fun DownloadCard(
         }
     }
 
+    // Delete confirmation dialog
+    if (showDeleteConfirmation) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirmation = false },
+            icon = {
+                Icon(
+                    Icons.Rounded.Warning,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.error
+                )
+            },
+            title = { Text("Eliminar magnet") },
+            text = {
+                Column {
+                    Text(
+                        text = magnet.filename,
+                        style = MaterialTheme.typography.bodyMedium,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(Spacing.md))
+                    Text("Esta acción eliminará el magnet de AllDebrid permanentemente.")
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showDeleteConfirmation = false
+                        showBottomSheet = false
+                        onDelete?.invoke(magnet.id)
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error
+                    )
+                ) {
+                    Text("Eliminar")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteConfirmation = false }) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
+
     // BottomSheet for file list
     if (showBottomSheet) {
         ModalBottomSheet(
             onDismissRequest = { showBottomSheet = false },
-            sheetState = sheetState
+            sheetState = sheetState,
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            scrimColor = MaterialTheme.colorScheme.scrim.copy(alpha = 0.7f),
+            dragHandle = {
+                // Línea superior blanca
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(2.dp)
+                        .background(androidx.compose.ui.graphics.Color.White.copy(alpha = 0.8f))
+                )
+            }
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = Spacing.lg)
-                    .padding(bottom = Spacing.xxxl)
-                    .verticalScroll(rememberScrollState())
+                    .fillMaxHeight(0.85f)
             ) {
-                // Header
-                Text(
-                    text = magnet.filename,
-                    style = MaterialTheme.typography.titleMedium,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Spacer(modifier = Modifier.height(Spacing.xs))
-                // Progress Header for Downloading items
+                // Contenido scrollable
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .verticalScroll(rememberScrollState())
+                ) {
+                    Spacer(modifier = Modifier.height(Spacing.xl))
+
+                // Header Card
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = Spacing.lg),
+                    shape = MaterialTheme.shapes.large,
+                    color = MaterialTheme.colorScheme.primaryContainer
+                ) {
+                    Row(
+                        modifier = Modifier.padding(Spacing.xl),
+                        verticalAlignment = Alignment.Top,
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.lg)
+                    ) {
+                        // Folder icon
+                        Surface(
+                            shape = MaterialTheme.shapes.medium,
+                            color = MaterialTheme.colorScheme.primary
+                        ) {
+                            Box(
+                                modifier = Modifier.size(48.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    Icons.Rounded.FolderOpen,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(28.dp),
+                                    tint = MaterialTheme.colorScheme.onPrimary
+                                )
+                            }
+                        }
+
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = magnet.filename,
+                                style = MaterialTheme.typography.titleMedium,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+
+                            Spacer(modifier = Modifier.height(Spacing.md))
+
+                            // Info chips
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                // Status chip
+                                Surface(
+                                    shape = MaterialTheme.shapes.small,
+                                    color = statusColor.copy(alpha = 0.2f)
+                                ) {
+                                    Text(
+                                        text = magnet.status,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = statusColor,
+                                        modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs)
+                                    )
+                                }
+
+                                // Size chip
+                                Surface(
+                                    shape = MaterialTheme.shapes.small,
+                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+                                ) {
+                                    Text(
+                                        text = formatSize(magnet.size),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                        modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs)
+                                    )
+                                }
+
+                                // Files count chip
+                                if (files.isNotEmpty()) {
+                                    Surface(
+                                        shape = MaterialTheme.shapes.small,
+                                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+                                    ) {
+                                        Text(
+                                            text = "${files.size} files",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                            modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(Spacing.xl))
+
+                // Progress section for Downloading items
                 if (magnet.status != "Ready") {
                     // Auto-refresh every 10 seconds while sheet is open
                     LaunchedEffect(Unit) {
-                        while(true) {
+                        while (true) {
                             kotlinx.coroutines.delay(10000)
                             refreshCallback?.invoke()
                         }
                     }
 
-                    // Progress Header for Downloading items
-                    Column(
+                    Surface(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(vertical = Spacing.sm)
+                            .padding(horizontal = Spacing.lg),
+                        shape = MaterialTheme.shapes.large,
+                        color = MaterialTheme.colorScheme.surfaceVariant
                     ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
+                        Column(
+                            modifier = Modifier.padding(Spacing.xl)
                         ) {
-                             // Status with Icon
-                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                                 CircularProgressIndicator(
-                                     modifier = Modifier.size(16.dp),
-                                     strokeWidth = 2.dp,
-                                     color = statusColor
-                                 )
-                                 Text(
-                                    text = magnet.status,
-                                    style = MaterialTheme.typography.titleMedium,
-                                    color = statusColor
-                                )
-                             }
-                            
-                            // Speed
-                            androidx.compose.material3.Surface(
-                                shape = MaterialTheme.shapes.small,
-                                color = MaterialTheme.colorScheme.primaryContainer
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Row(
-                                    modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs),
                                     verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
+                                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
                                 ) {
-                                    Icon(
-                                        imageVector = Icons.Rounded.PlayArrow, // Rotation needed for download arrow, usually ArrowDownward
-                                        contentDescription = null,
-                                        modifier = Modifier.size(14.dp).rotate(90f),
-                                        tint = MaterialTheme.colorScheme.onPrimaryContainer
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(20.dp),
+                                        strokeWidth = 2.dp,
+                                        color = statusColor
                                     )
+                                    Text(
+                                        text = magnet.status,
+                                        style = MaterialTheme.typography.titleSmall,
+                                        color = statusColor
+                                    )
+                                }
+
+                                Surface(
+                                    shape = MaterialTheme.shapes.small,
+                                    color = MaterialTheme.colorScheme.primary
+                                ) {
                                     Text(
                                         text = "${formatSize(magnet.downloadSpeed)}/s",
                                         style = MaterialTheme.typography.labelMedium,
-                                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                                        color = MaterialTheme.colorScheme.onPrimary,
+                                        modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.xs)
                                     )
                                 }
                             }
-                        }
-                        
-                        Spacer(modifier = Modifier.height(Spacing.lg))
-                        
-                        // Progress
-                        val progress = if (magnet.size > 0) magnet.downloaded.toFloat() / magnet.size.toFloat() else 0f
-                        val progressPercent = (progress * 100).toInt()
-                        
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text(
-                                text = "Progress",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Text(
-                                text = "$progressPercent%",
-                                style = MaterialTheme.typography.labelLarge,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                        }
-                        
-                        Spacer(modifier = Modifier.height(Spacing.sm))
 
-                        LinearProgressIndicator(
-                            progress = { progress },
-                            modifier = Modifier.fillMaxWidth().height(Spacing.sm),
-                            trackColor = MaterialTheme.colorScheme.surfaceVariant,
-                            color = statusColor,
-                            strokeCap = androidx.compose.ui.graphics.StrokeCap.Round
-                        )
-                        
-                        Spacer(modifier = Modifier.height(Spacing.sm))
-                        
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text(
-                                text = "${formatSize(magnet.downloaded)} / ${formatSize(magnet.size)}",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            Spacer(modifier = Modifier.height(Spacing.lg))
+
+                            val progress = if (magnet.size > 0) magnet.downloaded.toFloat() / magnet.size.toFloat() else 0f
+                            val progressPercent = (progress * 100).toInt()
+
+                            LinearProgressIndicator(
+                                progress = { progress },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(Spacing.sm),
+                                trackColor = MaterialTheme.colorScheme.surface,
+                                color = statusColor,
+                                strokeCap = androidx.compose.ui.graphics.StrokeCap.Round
                             )
-                             Text(
-                                text = "${magnet.seeders} seeds",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+
+                            Spacer(modifier = Modifier.height(Spacing.md))
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(
+                                    text = "${formatSize(magnet.downloaded)} / ${formatSize(magnet.size)}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Text(
+                                    text = "$progressPercent% • ${magnet.seeders} seeds",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
                         }
                     }
-                    Spacer(modifier = Modifier.height(Spacing.lg))
-                    Spacer(modifier = Modifier.height(Spacing.lg))
-                } else {
-                    Text(
-                        text = "${formatSize(magnet.size)} • ${files.size} files",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+
+                    Spacer(modifier = Modifier.height(Spacing.xl))
                 }
-                
-                Spacer(modifier = Modifier.height(Spacing.lg))
-                HorizontalDivider()
-                Spacer(modifier = Modifier.height(Spacing.lg))
-                
-                // Loading state
-                if (isLoadingFiles) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(Spacing.xxxl),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            CircularProgressIndicator()
-                            Spacer(modifier = Modifier.height(Spacing.sm))
-                            Text(
-                                text = "Loading files...",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                } else if (filesError != null) {
-                    Text(
-                        text = "Error: $filesError",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.padding(Spacing.lg)
-                    )
-                } else {
-                    // Media files
-                    if (mediaFiles.isNotEmpty()) {
-                        Text(
-                            text = "Media Files (${mediaFiles.size})",
-                            style = MaterialTheme.typography.labelLarge,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                        Spacer(modifier = Modifier.height(Spacing.sm))
-                        Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-                            mediaFiles.forEach { file ->
-                                FileLinkItem(
-                                    file = file,
-                                    onClick = { 
-                                        onPlay(file.link, file.filename)
-                                        showBottomSheet = false
-                                    }
+
+                // Files section
+                Column(
+                    modifier = Modifier.padding(horizontal = Spacing.lg)
+                ) {
+                    // Loading state
+                    if (isLoadingFiles) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = Spacing.xxxl),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                CircularProgressIndicator()
+                                Spacer(modifier = Modifier.height(Spacing.md))
+                                Text(
+                                    text = "Cargando archivos...",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                         }
-                    }
-                    
-                    // Other files with toggle
-                    if (hasOtherFiles) {
-                        Spacer(modifier = Modifier.height(Spacing.lg))
-                        Row(
+                    } else if (filesError != null) {
+                        Surface(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
+                            shape = MaterialTheme.shapes.medium,
+                            color = MaterialTheme.colorScheme.errorContainer
                         ) {
                             Text(
-                                text = "Other Files (${otherFiles.size})",
-                                style = MaterialTheme.typography.labelLarge,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                text = "Error: $filesError",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onErrorContainer,
+                                modifier = Modifier.padding(Spacing.lg)
                             )
-                            TextButton(onClick = { showAllFiles = !showAllFiles }) {
-                                Icon(
-                                    imageVector = if (showAllFiles) Icons.Rounded.VisibilityOff else Icons.Rounded.Visibility,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Spacer(modifier = Modifier.width(Spacing.xs))
-                                Text(if (showAllFiles) "Hide" else "Show")
-                            }
                         }
-                        
-                        if (showAllFiles) {
+                    } else {
+                        // Media files
+                        if (mediaFiles.isNotEmpty()) {
                             Text(
-                                text = "(long-press to copy link)",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = Alpha.muted),
-                                modifier = Modifier.padding(bottom = Spacing.sm)
+                                text = "MEDIA FILES (${mediaFiles.size})",
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.padding(bottom = Spacing.md)
                             )
-                            Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-                                otherFiles.forEach { file ->
-                                    OtherFileItem(
+
+                            Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+                                mediaFiles.forEach { file ->
+                                    FileLinkItem(
                                         file = file,
-                                        onLongPress = { 
-                                            onCopyLink(file.link)
-                                            // Don't close sheet - user can close manually
+                                        onPlay = {
+                                            onPlay(file.link, file.filename)
+                                            showBottomSheet = false
+                                        },
+                                        onShare = { link ->
+                                            onShareLink?.invoke(link, file.filename)
                                         }
                                     )
                                 }
                             }
                         }
+
+                        // Other files with toggle
+                        if (hasOtherFiles) {
+                            Spacer(modifier = Modifier.height(Spacing.xl))
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "OTHER FILES (${otherFiles.size})",
+                                    style = MaterialTheme.typography.labelLarge,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                TextButton(onClick = { showAllFiles = !showAllFiles }) {
+                                    Icon(
+                                        imageVector = if (showAllFiles) Icons.Rounded.VisibilityOff else Icons.Rounded.Visibility,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(Spacing.xs))
+                                    Text(if (showAllFiles) "Ocultar" else "Ver")
+                                }
+                            }
+
+                            if (showAllFiles) {
+                                Text(
+                                    text = "(mantén pulsado para copiar enlace)",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = Alpha.muted),
+                                    modifier = Modifier.padding(bottom = Spacing.md)
+                                )
+                                Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                                    otherFiles.forEach { file ->
+                                        OtherFileItem(
+                                            file = file,
+                                            onLongPress = {
+                                                onCopyLink(file.link)
+                                            }
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        // Empty state
+                        if (files.isEmpty() && !isLoadingFiles && magnet.status == "Ready") {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = Spacing.xxxl),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "No se encontraron archivos",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
                     }
-                    
-                    // Empty state
-                    if (files.isEmpty() && !isLoadingFiles && magnet.status == "Ready") {
-                        Text(
-                            text = "No files found",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(Spacing.lg)
-                        )
+                }
+
+                Spacer(modifier = Modifier.height(Spacing.lg))
+                } // Fin del Column scrollable
+
+                // Delete zone - fija abajo
+                if (onDelete != null) {
+                    HorizontalDivider(
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                    )
+
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(Spacing.lg),
+                        shape = MaterialTheme.shapes.large,
+                        color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f)
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(Spacing.lg),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            OutlinedButton(
+                                onClick = { showDeleteConfirmation = true },
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = ButtonDefaults.outlinedButtonColors(
+                                    contentColor = MaterialTheme.colorScheme.error
+                                ),
+                                border = ButtonDefaults.outlinedButtonBorder(enabled = true).copy(
+                                    brush = androidx.compose.ui.graphics.SolidColor(MaterialTheme.colorScheme.error)
+                                )
+                            ) {
+                                Icon(
+                                    Icons.Rounded.Delete,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(Spacing.sm))
+                                Text(
+                                    "Eliminar magnet",
+                                    style = MaterialTheme.typography.labelLarge
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(Spacing.xs))
+
+                            Text(
+                                text = "Esta acción es permanente",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.error.copy(alpha = Alpha.muted)
+                            )
+                        }
                     }
                 }
             }
         }
     }
 
-    // Compact Card
+    // Long-press handler: if 1 media file -> share directly, else open BottomSheet
+    val handleLongPress: () -> Unit = {
+        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+        if (magnet.status == "Ready" && onShareLink != null) {
+            // If files already loaded, check count
+            if (files.isNotEmpty()) {
+                val mediaFilesLoaded = files.filter { it.filename.isMediaFile() }
+                if (mediaFilesLoaded.size == 1) {
+                    // Share directly
+                    onShareLink(mediaFilesLoaded[0].link, mediaFilesLoaded[0].filename)
+                } else {
+                    // Open BottomSheet to choose
+                    showBottomSheet = true
+                }
+            } else {
+                // Need to load files first
+                isLoadingForShare = true
+                scope.launch {
+                    onFetchFiles(magnet.id)
+                        .onSuccess { fetchedFiles ->
+                            files = fetchedFiles
+                            isLoadingForShare = false
+                            val mediaFilesLoaded = fetchedFiles.filter { it.filename.isMediaFile() }
+                            if (mediaFilesLoaded.size == 1) {
+                                onShareLink(mediaFilesLoaded[0].link, mediaFilesLoaded[0].filename)
+                            } else {
+                                showBottomSheet = true
+                            }
+                        }
+                        .onFailure {
+                            isLoadingForShare = false
+                            showBottomSheet = true
+                        }
+                }
+            }
+        }
+    }
+
+    // Card
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .clickable(enabled = magnet.status == "Ready" || magnet.status != "Ready") { 
-                showBottomSheet = true 
-            },
-        shape = MaterialTheme.shapes.medium, // Reduced radius
+            .combinedClickable(
+                onClick = { showBottomSheet = true },
+                onLongClick = if (magnet.status == "Ready" && onShareLink != null) handleLongPress else null
+            ),
+        shape = MaterialTheme.shapes.medium,
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant
         )
     ) {
         Column(
-            modifier = Modifier.padding(Spacing.lg) // Adjusted padding
+            modifier = Modifier.padding(Spacing.lg)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -393,7 +649,7 @@ fun DownloadCard(
                         overflow = TextOverflow.Ellipsis
                     )
                     Spacer(modifier = Modifier.height(Spacing.xs))
-                    
+
                     // Status Badge Row
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -419,8 +675,16 @@ fun DownloadCard(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
 
+                        // Loading indicator for share
+                        if (isLoadingForShare) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(14.dp),
+                                strokeWidth = 2.dp
+                            )
+                        }
+
                         // Media count (show if files loaded)
-                        if (files.isNotEmpty()) {
+                        if (files.isNotEmpty() && !isLoadingForShare) {
                             val mediaCount = files.count { it.filename.isMediaFile() }
                             if (mediaCount > 0) {
                                 androidx.compose.material3.Surface(
@@ -438,33 +702,51 @@ fun DownloadCard(
                         }
                     }
                 }
-            }
 
-            // Progress bar for downloading
-            if (magnet.status == "Downloading" && magnet.downloaded > 0) {
-                Spacer(modifier = Modifier.height(Spacing.md))
-                Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-                    LinearProgressIndicator(
-                        progress = { (magnet.downloaded.toFloat() / magnet.size.toFloat()) },
-                        modifier = Modifier.fillMaxWidth().height(Spacing.xs),
-                        color = StatusDownloading,
-                        trackColor = MaterialTheme.colorScheme.surface
-                    )
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(
-                            text = "${((magnet.downloaded.toFloat() / magnet.size.toFloat()) * 100).toInt()}%",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                // Delete button for downloading items
+                if (showDeleteButton && onDelete != null) {
+                    FilledIconButton(
+                        onClick = { onDelete(magnet.id) },
+                        colors = IconButtonDefaults.filledIconButtonColors(
+                            containerColor = MaterialTheme.colorScheme.surface
                         )
-                        Text(
-                            text = "${formatSize(magnet.downloadSpeed)}/s",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.primary
+                    ) {
+                        Icon(
+                            Icons.Rounded.Close,
+                            contentDescription = "Cancelar",
+                            tint = MaterialTheme.colorScheme.error
                         )
                     }
+                }
+            }
+        }
+
+        // Progress bar for downloading
+        if (magnet.status == "Downloading" && magnet.downloaded > 0) {
+            Column(
+                modifier = Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.sm),
+                verticalArrangement = Arrangement.spacedBy(Spacing.xs)
+            ) {
+                LinearProgressIndicator(
+                    progress = { (magnet.downloaded.toFloat() / magnet.size.toFloat()) },
+                    modifier = Modifier.fillMaxWidth().height(Spacing.xs),
+                    color = StatusDownloading,
+                    trackColor = MaterialTheme.colorScheme.surface
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = "${((magnet.downloaded.toFloat() / magnet.size.toFloat()) * 100).toInt()}%",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = "${formatSize(magnet.downloadSpeed)}/s",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary
+                    )
                 }
             }
         }
@@ -474,48 +756,74 @@ fun DownloadCard(
 @Composable
 private fun FileLinkItem(
     file: FlatFile,
-    onClick: () -> Unit
+    onPlay: () -> Unit,
+    onShare: (String) -> Unit
 ) {
-    androidx.compose.material3.Surface(
-        onClick = onClick,
-        shape = MaterialTheme.shapes.small,
-        color = MaterialTheme.colorScheme.surface,
+    Surface(
+        shape = MaterialTheme.shapes.medium,
+        color = MaterialTheme.colorScheme.surfaceVariant,
         modifier = Modifier.fillMaxWidth()
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(Spacing.md),
-            verticalAlignment = Alignment.CenterVertically
+                .padding(Spacing.lg),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Spacing.lg)
         ) {
-            androidx.compose.material3.Surface(
-                 shape = androidx.compose.foundation.shape.CircleShape,
-                 color = MaterialTheme.colorScheme.primaryContainer,
-                 modifier = Modifier.size(32.dp)
+            // Play button - only this is clickable for play
+            Surface(
+                onClick = onPlay,
+                shape = MaterialTheme.shapes.medium,
+                color = MaterialTheme.colorScheme.primary
             ) {
-                 Box(contentAlignment = Alignment.Center) {
-                     Icon(
+                Box(
+                    modifier = Modifier.size(48.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
                         imageVector = Icons.Rounded.PlayArrow,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp),
-                        tint = MaterialTheme.colorScheme.onPrimaryContainer
+                        contentDescription = "Reproducir",
+                        modifier = Modifier.size(28.dp),
+                        tint = MaterialTheme.colorScheme.onPrimary
                     )
-                 }
+                }
             }
-            Spacer(modifier = Modifier.width(Spacing.md))
+
+            // File info
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = file.filename,
-                    style = MaterialTheme.typography.bodyMedium,
-                    maxLines = 1,
+                    style = MaterialTheme.typography.bodyLarge,
+                    maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                     color = MaterialTheme.colorScheme.onSurface
                 )
+                Spacer(modifier = Modifier.height(Spacing.xs))
                 Text(
                     text = formatSize(file.size),
-                    style = MaterialTheme.typography.bodySmall,
+                    style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+            }
+
+            // Share button
+            Surface(
+                onClick = { onShare(file.link) },
+                shape = MaterialTheme.shapes.medium,
+                color = MaterialTheme.colorScheme.secondaryContainer
+            ) {
+                Box(
+                    modifier = Modifier.size(48.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.Share,
+                        contentDescription = "Compartir",
+                        modifier = Modifier.size(24.dp),
+                        tint = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
+                }
             }
         }
     }

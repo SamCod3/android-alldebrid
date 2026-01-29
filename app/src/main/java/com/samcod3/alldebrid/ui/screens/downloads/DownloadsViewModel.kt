@@ -123,10 +123,15 @@ class DownloadsViewModel @Inject constructor(
     }
 
     fun deleteMagnet(id: Long) {
+        android.util.Log.d("DownloadsVM", "deleteMagnet called with id: $id")
         viewModelScope.launch {
             repository.deleteMagnet(id)
-                .onSuccess { refresh() }
+                .onSuccess {
+                    android.util.Log.d("DownloadsVM", "deleteMagnet SUCCESS for id: $id")
+                    refresh()
+                }
                 .onFailure { error ->
+                    android.util.Log.e("DownloadsVM", "deleteMagnet FAILED for id: $id", error)
                     handleError(error)
                 }
         }
@@ -375,6 +380,25 @@ class DownloadsViewModel @Inject constructor(
                 }
                 .onFailure { error ->
                     _uiState.update { it.copy(castingMessage = null, error = "Failed: ${error.message}") }
+                }
+        }
+    }
+
+    fun shareLink(context: Context, link: String, filename: String) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(castingMessage = "Preparando enlace...") }
+            repository.unlockLink(link)
+                .onSuccess { unlockedLink ->
+                    _uiState.update { it.copy(castingMessage = null) }
+                    val shareIntent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                        type = "text/plain"
+                        putExtra(android.content.Intent.EXTRA_SUBJECT, filename)
+                        putExtra(android.content.Intent.EXTRA_TEXT, unlockedLink.link)
+                    }
+                    context.startActivity(android.content.Intent.createChooser(shareIntent, "Compartir"))
+                }
+                .onFailure { error ->
+                    _uiState.update { it.copy(castingMessage = null, error = "Error: ${error.message}") }
                 }
         }
     }

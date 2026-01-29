@@ -5,7 +5,6 @@ import android.content.ClipboardManager
 import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -24,8 +23,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.zIndex
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Cast
@@ -76,7 +73,6 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.samcod3.alldebrid.ui.theme.Spacing
 import com.samcod3.alldebrid.R
 import com.samcod3.alldebrid.ui.components.DownloadCard
-import com.samcod3.alldebrid.ui.components.SwipeToDeleteContainer
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -86,6 +82,10 @@ fun DownloadsScreen(
     onNavigateToDevices: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
+
+    // Filter states - moved here to persist across recompositions
+    var searchFilter by remember { mutableStateOf("") }
+    var statusFilter by remember { mutableStateOf("ready") }
 
     // Show IP Authorization dialog when needed
     if (uiState.requiresIpAuthorization) {
@@ -438,13 +438,6 @@ fun DownloadsScreen(
                     )
                 }
                 else -> {
-                    // Filter states
-                    var searchFilter by remember { mutableStateOf("") }
-                    var statusFilter by remember { mutableStateOf("ready") } // Default to ready (Disponibles)
-
-                    // Track which item has swipe revealed (only one at a time)
-                    var revealedMagnetId by remember { mutableStateOf<Long?>(null) }
-                    
                     // Apply filters
                     val filteredMagnets = uiState.magnets.filter { magnet ->
                         val matchesSearch = searchFilter.isBlank() || magnet.filename.contains(searchFilter, ignoreCase = true)
@@ -533,23 +526,23 @@ fun DownloadsScreen(
                                     key = { it.id }
                                 ) { magnet ->
                                     val context = LocalContext.current
-                                    SwipeToDeleteContainer(
-                                        onDelete = { viewModel.deleteMagnet(magnet.id) },
-                                        isRevealed = revealedMagnetId == magnet.id,
-                                        onRevealChange = { isOpen ->
-                                            revealedMagnetId = if (isOpen) magnet.id else null
-                                        }
-                                    ) {
-                                        DownloadCard(
-                                            magnet = magnet,
-                                            onCopyLink = { link ->
-                                                viewModel.copyLinkToClipboard(context, link)
-                                            },
-                                            onPlay = { link, title -> viewModel.playLink(link, title) },
-                                            onFetchFiles = { magnetId -> viewModel.fetchMagnetFiles(magnetId) },
-                                            refreshCallback = { viewModel.refreshSilent() }
-                                        )
-                                    }
+                                    val isReady = magnet.status == "Ready"
+                                    DownloadCard(
+                                        magnet = magnet,
+                                        onCopyLink = { link ->
+                                            viewModel.copyLinkToClipboard(context, link)
+                                        },
+                                        onPlay = { link, title -> viewModel.playLink(link, title) },
+                                        onFetchFiles = { magnetId -> viewModel.fetchMagnetFiles(magnetId) },
+                                        onDelete = { id -> viewModel.deleteMagnet(id) },
+                                        onShareLink = if (isReady) {
+                                            { link, filename ->
+                                                viewModel.shareLink(context, link, filename)
+                                            }
+                                        } else null,
+                                        showDeleteButton = !isReady,
+                                        refreshCallback = { viewModel.refreshSilent() }
+                                    )
                                 }
 
                                 // No results message
@@ -567,17 +560,6 @@ fun DownloadsScreen(
                                     }
                                 }
                             }
-                        }
-
-                        // Invisible scrim - intercepts taps anywhere to close revealed swipe
-                        if (revealedMagnetId != null) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .pointerInput(revealedMagnetId) {
-                                        detectTapGestures { revealedMagnetId = null }
-                                    }
-                            )
                         }
                     }
                 }
