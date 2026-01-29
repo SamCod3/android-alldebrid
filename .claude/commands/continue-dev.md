@@ -9,7 +9,7 @@ Retoma el trabajo de desarrollo donde se dejó en la última sesión.
 
 ## Instrucciones
 
-1. Lee el archivo `CLAUDE.md`, específicamente la sección `/continue-dev` que contiene:
+1. Lee el archivo `.claude/rules/session.md` que contiene:
    - Estado Actual (branch, fase)
    - Última Sesión (qué se hizo)
    - Tareas Pendientes

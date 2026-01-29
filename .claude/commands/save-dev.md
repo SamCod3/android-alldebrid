@@ -9,14 +9,14 @@ Guarda el estado de desarrollo antes de terminar la sesión.
 
 ## Instrucciones
 
-1. Ejecuta `git status --short app/src CLAUDE.md` y `git log -1 --oneline` para ver el estado actual
+1. Ejecuta `git status --short app/src .claude/` y `git log -1 --oneline` para ver el estado actual
 
 2. Analiza automáticamente:
    - Archivos modificados sin commit → "En Progreso"
    - Commits recientes → "Última Sesión"
    - Tareas que faltan según el contexto → "Tareas Pendientes"
 
-3. Actualiza el archivo `CLAUDE.md` en la sección `/continue-dev`:
+3. Actualiza el archivo `.claude/rules/session.md`:
    - "Última Sesión" con fecha de hoy y resumen de lo hecho
    - "En Progreso" si hay archivos sin commitear
    - "Tareas Pendientes" si hay algo identificado
