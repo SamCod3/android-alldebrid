@@ -70,6 +70,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.samcod3.alldebrid.ui.theme.Spacing
 import com.samcod3.alldebrid.R
 import com.samcod3.alldebrid.ui.components.DownloadCard
 import com.samcod3.alldebrid.ui.components.SwipeToDeleteContainer
@@ -118,7 +119,7 @@ fun DownloadsScreen(
                 Column {
                     Text("Please select a device to cast media to.")
                     if (uiState.discoveredDevices.isEmpty()) {
-                        Spacer(Modifier.height(8.dp))
+                        Spacer(Modifier.height(Spacing.sm))
                         Text(
                             "No devices found. Go to Devices tab to discover devices on your network.",
                             style = MaterialTheme.typography.bodySmall,
@@ -172,7 +173,7 @@ fun DownloadsScreen(
             text = { 
                 Column {
                     Text("You have ${uiState.dlnaQueue.size} video(s) in queue.")
-                    Spacer(Modifier.height(8.dp))
+                    Spacer(Modifier.height(Spacing.sm))
                     Text("Do you want to play this now or add it to the queue?")
                 }
             },
@@ -210,7 +211,7 @@ fun DownloadsScreen(
                                         viewModel.selectDevice(device)
                                         showDeviceSelector = false
                                     }
-                                    .padding(vertical = 8.dp),
+                                    .padding(vertical = Spacing.sm),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 RadioButton(
@@ -220,7 +221,7 @@ fun DownloadsScreen(
                                         showDeviceSelector = false
                                     }
                                 )
-                                Spacer(Modifier.width(8.dp))
+                                Spacer(Modifier.width(Spacing.sm))
                                 Column {
                                     Text(device.displayName, style = MaterialTheme.typography.bodyMedium)
                                     Text(
@@ -235,7 +236,7 @@ fun DownloadsScreen(
                         // DLNA Queue info
                         if (uiState.selectedDevice?.type == com.samcod3.alldebrid.data.model.DeviceType.DLNA && 
                             uiState.dlnaQueue.isNotEmpty()) {
-                            Spacer(Modifier.height(12.dp))
+                            Spacer(Modifier.height(Spacing.md))
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -272,7 +273,7 @@ fun DownloadsScreen(
                     onNavigateToDevices()
                 }) {
                     Icon(Icons.Rounded.Search, null, Modifier.size(18.dp))
-                    Spacer(Modifier.width(4.dp))
+                    Spacer(Modifier.width(Spacing.xs))
                     Text("Discover")
                 }
             },
@@ -307,13 +308,13 @@ fun DownloadsScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 4.dp),
+                    .padding(horizontal = Spacing.lg, vertical = Spacing.xs),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 // Device name (show when connected) + Playback controls (only when playing)
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.weight(1f)
                 ) {
@@ -408,7 +409,7 @@ fun DownloadsScreen(
                     Column(
                         modifier = Modifier.align(Alignment.Center),
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                        verticalArrangement = Arrangement.spacedBy(Spacing.sm)
                     ) {
                         Text(
                             text = uiState.error ?: stringResource(R.string.error_network),
@@ -455,7 +456,7 @@ fun DownloadsScreen(
                             placeholder = { Text("Filtrar por nombre...") },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 4.dp),
+                                .padding(horizontal = Spacing.lg, vertical = Spacing.xs),
                             shape = MaterialTheme.shapes.medium, // Less rounded (16dp)
                             singleLine = true,
                             trailingIcon = {
@@ -471,9 +472,9 @@ fun DownloadsScreen(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 4.dp)
+                                .padding(horizontal = Spacing.lg, vertical = Spacing.xs)
                                 .horizontalScroll(rememberScrollState()), // Fix: Horizontal scroll to prevent wrapping
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
                         ) {
                             FilterChip(
                                 selected = statusFilter == "ready",
@@ -511,8 +512,8 @@ fun DownloadsScreen(
                         }
                         
                         LazyColumn(
-                                contentPadding = PaddingValues(16.dp),
-                                verticalArrangement = Arrangement.spacedBy(12.dp)
+                                contentPadding = PaddingValues(Spacing.lg),
+                                verticalArrangement = Arrangement.spacedBy(Spacing.md)
                             ) {
                                 items(
                                     items = filteredMagnets,
@@ -548,7 +549,7 @@ fun DownloadsScreen(
                                                 "No hay elementos en esta categoría",
                                             style = MaterialTheme.typography.bodyMedium,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            modifier = Modifier.padding(16.dp)
+                                            modifier = Modifier.padding(Spacing.lg)
                                         )
                                     }
                                 }
@@ -574,7 +575,7 @@ fun DownloadsScreen(
             uiState.castingMessage?.let { message ->
                 Card(
                     modifier = Modifier
-                        .padding(16.dp)
+                        .padding(Spacing.lg)
                         .fillMaxWidth(),
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.inverseSurface
@@ -583,7 +584,7 @@ fun DownloadsScreen(
                     Text(
                         text = message,
                         color = MaterialTheme.colorScheme.inverseOnSurface,
-                        modifier = Modifier.padding(16.dp),
+                        modifier = Modifier.padding(Spacing.lg),
                         style = MaterialTheme.typography.bodyMedium
                     )
                 }

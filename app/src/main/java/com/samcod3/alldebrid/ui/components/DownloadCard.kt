@@ -16,7 +16,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.InsertDriveFile
+import androidx.compose.material.icons.automirrored.rounded.InsertDriveFile
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Visibility
 import androidx.compose.material.icons.rounded.VisibilityOff
@@ -47,6 +47,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.samcod3.alldebrid.data.model.FlatFile
 import com.samcod3.alldebrid.data.model.Magnet
+import com.samcod3.alldebrid.ui.theme.Spacing
 import com.samcod3.alldebrid.ui.theme.StatusDownloading
 import com.samcod3.alldebrid.ui.util.formatSize
 import com.samcod3.alldebrid.ui.theme.StatusError
@@ -121,8 +122,8 @@ fun DownloadCard(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
-                    .padding(bottom = 32.dp)
+                    .padding(horizontal = Spacing.lg)
+                    .padding(bottom = Spacing.xxxl)
                     .verticalScroll(rememberScrollState())
             ) {
                 // Header
@@ -132,7 +133,7 @@ fun DownloadCard(
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(Spacing.xs))
                 // Progress Header for Downloading items
                 if (magnet.status != "Ready") {
                     // Auto-refresh every 10 seconds while sheet is open
@@ -147,7 +148,7 @@ fun DownloadCard(
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(vertical = 8.dp)
+                            .padding(vertical = Spacing.sm)
                     ) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -155,7 +156,7 @@ fun DownloadCard(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                              // Status with Icon
-                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                                  CircularProgressIndicator(
                                      modifier = Modifier.size(16.dp),
                                      strokeWidth = 2.dp,
@@ -174,9 +175,9 @@ fun DownloadCard(
                                 color = MaterialTheme.colorScheme.primaryContainer
                             ) {
                                 Row(
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                    modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs),
                                     verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                    horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
                                 ) {
                                     Icon(
                                         imageVector = Icons.Rounded.PlayArrow, // Rotation needed for download arrow, usually ArrowDownward
@@ -193,7 +194,7 @@ fun DownloadCard(
                             }
                         }
                         
-                        Spacer(modifier = Modifier.height(16.dp))
+                        Spacer(modifier = Modifier.height(Spacing.lg))
                         
                         // Progress
                         val progress = if (magnet.size > 0) magnet.downloaded.toFloat() / magnet.size.toFloat() else 0f
@@ -215,17 +216,17 @@ fun DownloadCard(
                             )
                         }
                         
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(Spacing.sm))
 
                         LinearProgressIndicator(
                             progress = { progress },
-                            modifier = Modifier.fillMaxWidth().height(8.dp),
+                            modifier = Modifier.fillMaxWidth().height(Spacing.sm),
                             trackColor = MaterialTheme.colorScheme.surfaceVariant,
                             color = statusColor,
                             strokeCap = androidx.compose.ui.graphics.StrokeCap.Round
                         )
                         
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(Spacing.sm))
                         
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -243,8 +244,8 @@ fun DownloadCard(
                             )
                         }
                     }
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(Spacing.lg))
+                    Spacer(modifier = Modifier.height(Spacing.lg))
                 } else {
                     Text(
                         text = "${formatSize(magnet.size)} • ${files.size} files",
@@ -253,21 +254,21 @@ fun DownloadCard(
                     )
                 }
                 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(Spacing.lg))
                 HorizontalDivider()
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(Spacing.lg))
                 
                 // Loading state
                 if (isLoadingFiles) {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(32.dp),
+                            .padding(Spacing.xxxl),
                         contentAlignment = Alignment.Center
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             CircularProgressIndicator()
-                            Spacer(modifier = Modifier.height(8.dp))
+                            Spacer(modifier = Modifier.height(Spacing.sm))
                             Text(
                                 text = "Loading files...",
                                 style = MaterialTheme.typography.bodySmall,
@@ -280,7 +281,7 @@ fun DownloadCard(
                         text = "Error: $filesError",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.padding(16.dp)
+                        modifier = Modifier.padding(Spacing.lg)
                     )
                 } else {
                     // Media files
@@ -290,8 +291,8 @@ fun DownloadCard(
                             style = MaterialTheme.typography.labelLarge,
                             color = MaterialTheme.colorScheme.primary
                         )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Spacer(modifier = Modifier.height(Spacing.sm))
+                        Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                             mediaFiles.forEach { file ->
                                 FileLinkItem(
                                     file = file,
@@ -306,7 +307,7 @@ fun DownloadCard(
                     
                     // Other files with toggle
                     if (hasOtherFiles) {
-                        Spacer(modifier = Modifier.height(16.dp))
+                        Spacer(modifier = Modifier.height(Spacing.lg))
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -323,7 +324,7 @@ fun DownloadCard(
                                     contentDescription = null,
                                     modifier = Modifier.size(16.dp)
                                 )
-                                Spacer(modifier = Modifier.width(4.dp))
+                                Spacer(modifier = Modifier.width(Spacing.xs))
                                 Text(if (showAllFiles) "Hide" else "Show")
                             }
                         }
@@ -333,9 +334,9 @@ fun DownloadCard(
                                 text = "(long-press to copy link)",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                                modifier = Modifier.padding(bottom = 8.dp)
+                                modifier = Modifier.padding(bottom = Spacing.sm)
                             )
-                            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                                 otherFiles.forEach { file ->
                                     OtherFileItem(
                                         file = file,
@@ -355,7 +356,7 @@ fun DownloadCard(
                             text = "No files found",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(16.dp)
+                            modifier = Modifier.padding(Spacing.lg)
                         )
                     }
                 }
@@ -376,7 +377,7 @@ fun DownloadCard(
         )
     ) {
         Column(
-            modifier = Modifier.padding(16.dp) // Adjusted padding
+            modifier = Modifier.padding(Spacing.lg) // Adjusted padding
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -390,12 +391,12 @@ fun DownloadCard(
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
-                    Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.height(Spacing.xs))
                     
                     // Status Badge Row
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
                     ) {
                         // Status Badge
                         androidx.compose.material3.Surface(
@@ -440,11 +441,11 @@ fun DownloadCard(
 
             // Progress bar for downloading
             if (magnet.status == "Downloading" && magnet.downloaded > 0) {
-                Spacer(modifier = Modifier.height(12.dp))
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Spacer(modifier = Modifier.height(Spacing.md))
+                Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                     LinearProgressIndicator(
                         progress = { (magnet.downloaded.toFloat() / magnet.size.toFloat()) },
-                        modifier = Modifier.fillMaxWidth().height(4.dp),
+                        modifier = Modifier.fillMaxWidth().height(Spacing.xs),
                         color = StatusDownloading,
                         trackColor = MaterialTheme.colorScheme.surface
                     )
@@ -483,7 +484,7 @@ private fun FileLinkItem(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(12.dp),
+                .padding(Spacing.md),
             verticalAlignment = Alignment.CenterVertically
         ) {
             androidx.compose.material3.Surface(
@@ -500,7 +501,7 @@ private fun FileLinkItem(
                     )
                  }
             }
-            Spacer(modifier = Modifier.width(12.dp))
+            Spacer(modifier = Modifier.width(Spacing.md))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = file.filename,
@@ -537,16 +538,16 @@ private fun OtherFileItem(
                     onClick = { },
                     onLongClick = onLongPress
                 )
-                .padding(12.dp),
+                .padding(Spacing.md),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
-                imageVector = Icons.AutoMirrored.Filled.InsertDriveFile,
+                imageVector = Icons.AutoMirrored.Rounded.InsertDriveFile,
                 contentDescription = null,
                 modifier = Modifier.size(24.dp),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            Spacer(modifier = Modifier.width(12.dp))
+            Spacer(modifier = Modifier.width(Spacing.md))
             Column(modifier = Modifier.weight(1f)) {
                 // Fallback: extract filename from link URL if filename is empty or blank
                 val displayName = file.filename.trim().ifEmpty { 

@@ -39,6 +39,7 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import com.samcod3.alldebrid.ui.theme.Spacing
 import androidx.compose.ui.zIndex
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
@@ -142,7 +143,7 @@ fun <T> SwipeToDeleteContainer(
                     ),
                     MaterialTheme.shapes.medium
                 )
-                .padding(end = 8.dp),
+                .padding(end = Spacing.sm),
             contentAlignment = Alignment.CenterEnd
         ) {
             // Show button when there's swipe progress

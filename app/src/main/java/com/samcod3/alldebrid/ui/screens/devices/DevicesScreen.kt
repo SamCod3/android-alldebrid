@@ -60,9 +60,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.samcod3.alldebrid.ui.theme.Spacing
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.samcod3.alldebrid.R
-import com.samcod3.alldebrid.ui.theme.Spacing
 import com.samcod3.alldebrid.data.model.Device
 import com.samcod3.alldebrid.ui.components.DeviceItem
 import com.samcod3.alldebrid.ui.components.SwipeToDeleteContainer
@@ -101,7 +101,7 @@ fun DevicesScreen(
             text = {
                 Column(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                    verticalArrangement = Arrangement.spacedBy(Spacing.lg)
                 ) {
                     // Device Info Card
                     androidx.compose.material3.Surface(
@@ -109,7 +109,7 @@ fun DevicesScreen(
                         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Column(modifier = Modifier.padding(12.dp)) {
+                        Column(modifier = Modifier.padding(Spacing.md)) {
                             Text(
                                 text = "Device",
                                 style = MaterialTheme.typography.labelSmall,
@@ -160,7 +160,7 @@ fun DevicesScreen(
                 }
             },
             dismissButton = {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                     if (device.customName != null) {
                         TextButton(
                             onClick = {
@@ -211,7 +211,7 @@ fun DevicesScreen(
 
             Column(
                 horizontalAlignment = Alignment.End,
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                verticalArrangement = Arrangement.spacedBy(Spacing.md)
             ) {
                 // Opciones expandibles
                 AnimatedVisibility(
@@ -221,7 +221,7 @@ fun DevicesScreen(
                 ) {
                     Column(
                         horizontalAlignment = Alignment.End,
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                        verticalArrangement = Arrangement.spacedBy(Spacing.sm)
                     ) {
                         // Opción: IP Scan (lento)
                         ScanOptionFab(

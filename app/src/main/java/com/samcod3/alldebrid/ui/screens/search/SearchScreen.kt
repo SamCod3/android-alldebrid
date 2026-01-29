@@ -14,7 +14,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -38,6 +38,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.samcod3.alldebrid.ui.theme.Spacing
 import com.samcod3.alldebrid.R
 import com.samcod3.alldebrid.ui.components.SearchResultItem
 
@@ -80,14 +81,14 @@ fun SearchScreen(
                             onClick = executeSearch,
                             enabled = uiState.query.isNotBlank()
                         ) {
-                            Icon(Icons.Default.Search, contentDescription = null)
+                            Icon(Icons.Rounded.Search, contentDescription = null)
                         }
                     },
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
                     keyboardActions = KeyboardActions(onSearch = { executeSearch() }),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp),
+                        .padding(Spacing.lg),
                     shape = MaterialTheme.shapes.medium, // Less rounded (16dp)
                     singleLine = true
                 )
@@ -117,8 +118,8 @@ fun SearchScreen(
                         }
                         else -> {
                             LazyColumn(
-                                contentPadding = PaddingValues(16.dp),
-                                verticalArrangement = Arrangement.spacedBy(12.dp)
+                                contentPadding = PaddingValues(Spacing.lg),
+                                verticalArrangement = Arrangement.spacedBy(Spacing.md)
                             ) {
                                 items(uiState.results) { result ->
                                     SearchResultItem(
@@ -137,7 +138,7 @@ fun SearchScreen(
                 Card(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
-                        .padding(16.dp),
+                        .padding(Spacing.lg),
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.primaryContainer
                     ),
@@ -145,7 +146,7 @@ fun SearchScreen(
                 ) {
                     Text(
                         text = message,
-                        modifier = Modifier.padding(16.dp),
+                        modifier = Modifier.padding(Spacing.lg),
                         style = MaterialTheme.typography.bodyMedium
                     )
                 }
