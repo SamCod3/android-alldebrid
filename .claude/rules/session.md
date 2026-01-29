@@ -34,19 +34,21 @@ Sistema para mantener continuidad entre sesiones de desarrollo.
 
 ## Estado Actual
 - **Branch**: `dev-ui`
-- **Fase**: Organización CLAUDE.md en rules
+- **Fase**: Configuración Claude Code completada
 
 ### Última Sesión (2026-01-29)
-- Statusline mejorado: añadidos tokens (15k/200k)
-- Reorganización CLAUDE.md en `.claude/rules/`
+- Reorganización CLAUDE.md en `.claude/rules/` con reglas condicionales por path
+- Statusline corregido: tokens calculados desde % (ej: 41% 82k/200k)
+- CLAUDE.md raíz como índice + fallback
 
 ### Tareas Pendientes
 - [ ] Verificar que todos los endpoints funcionan correctamente con v4.1
 - [ ] Probar flujo completo: listar magnets -> ver archivos -> reproducir
 
 ### En Progreso
-- Organización de memoria Claude Code
+- Nada pendiente, todo commiteado
 
 ### Decisiones Técnicas Recientes
 - **Estructura memoria**: `.claude/rules/*.md` con paths condicionales
-- **Statusline**: tokens mostrados como `15k/200k`
+- **Statusline**: tokens calculados como `% × context_size` (no total_input_tokens)
+- **CLAUDE.md raíz**: índice que explica estructura + fallback con info esencial
