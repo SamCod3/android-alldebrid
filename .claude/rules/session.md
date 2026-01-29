@@ -34,21 +34,25 @@ Sistema para mantener continuidad entre sesiones de desarrollo.
 
 ## Estado Actual
 - **Branch**: `dev-ui`
-- **Fase**: Configuración Claude Code completada
+- **Fase**: Refactorización UI Material 3 completada
 
 ### Última Sesión (2026-01-29)
-- Reorganización CLAUDE.md en `.claude/rules/` con reglas condicionales por path
-- Statusline corregido: tokens calculados desde % (ej: 41% 82k/200k)
-- CLAUDE.md raíz como índice + fallback
+- Rediseño completo BottomSheet en DownloadCard (scrollable, delete fijo abajo, borde blanco)
+- Share ahora desbloquea link antes de compartir (URL real del archivo)
+- FileLinkItem con botones Play y Share separados
+- Botón cancelar en downloading con estilo FilledIconButton
+- Bug fix: statusFilter movido para evitar reset al borrar
+- Refactoring Material 3: Spacing tokens, Alpha object, Snackbar, Icons.Rounded
 
 ### Tareas Pendientes
-- [ ] Verificar que todos los endpoints funcionan correctamente con v4.1
-- [ ] Probar flujo completo: listar magnets -> ver archivos -> reproducir
+- [ ] Probar casting DLNA en diferentes dispositivos
+- [ ] Verificar flujo completo: buscar -> añadir magnet -> descargar -> reproducir
 
 ### En Progreso
 - Nada pendiente, todo commiteado
 
 ### Decisiones Técnicas Recientes
-- **Estructura memoria**: `.claude/rules/*.md` con paths condicionales
-- **Statusline**: tokens calculados como `% × context_size` (no total_input_tokens)
-- **CLAUDE.md raíz**: índice que explica estructura + fallback con info esencial
+- **BottomSheet structure**: Column principal 85% altura, contenido scrollable con weight(1f), zona delete fija
+- **Share flow**: `unlockLink()` antes de compartir para obtener URL final
+- **Alpha object**: Centraliza valores de opacidad (muted, disabled, hint)
+- **Iconos**: `Icons.Rounded` estándar, `Icons.AutoMirrored.Rounded` para direccionales
