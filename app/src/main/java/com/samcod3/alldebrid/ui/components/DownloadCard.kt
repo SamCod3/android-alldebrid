@@ -47,6 +47,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.samcod3.alldebrid.data.model.FlatFile
 import com.samcod3.alldebrid.data.model.Magnet
+import com.samcod3.alldebrid.ui.theme.Alpha
 import com.samcod3.alldebrid.ui.theme.Spacing
 import com.samcod3.alldebrid.ui.theme.StatusDownloading
 import com.samcod3.alldebrid.ui.util.formatSize
@@ -333,7 +334,7 @@ fun DownloadCard(
                             Text(
                                 text = "(long-press to copy link)",
                                 style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = Alpha.muted),
                                 modifier = Modifier.padding(bottom = Spacing.sm)
                             )
                             Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
@@ -401,7 +402,7 @@ fun DownloadCard(
                         // Status Badge
                         androidx.compose.material3.Surface(
                             shape = MaterialTheme.shapes.extraSmall,
-                            color = statusColor.copy(alpha = 0.1f)
+                            color = statusColor.copy(alpha = Alpha.subtle)
                         ) {
                             Text(
                                 text = magnet.status,
@@ -529,7 +530,7 @@ private fun OtherFileItem(
     androidx.compose.material3.Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.small,
-        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)
+        color = MaterialTheme.colorScheme.surface.copy(alpha = Alpha.disabled)
     ) {
          Row(
             modifier = Modifier
@@ -565,12 +566,12 @@ private fun OtherFileItem(
                     style = MaterialTheme.typography.bodySmall, // Smaller text
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f) // Muted
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = Alpha.muted) // Muted
                 )
                 Text(
                     text = formatSize(file.size),
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = Alpha.disabled)
                 )
             }
         }

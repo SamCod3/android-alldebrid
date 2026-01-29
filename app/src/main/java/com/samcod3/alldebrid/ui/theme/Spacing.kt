@@ -28,3 +28,18 @@ object Spacing {
     /** 32.dp - Large section separators */
     val xxxl = 32.dp
 }
+
+/**
+ * Standardized alpha/opacity values for consistent transparency.
+ * Use with Color.copy(alpha = Alpha.xxx)
+ */
+object Alpha {
+    /** 0.7f - Muted text, secondary emphasis */
+    const val muted = 0.7f
+
+    /** 0.5f - Disabled elements, tertiary emphasis */
+    const val disabled = 0.5f
+
+    /** 0.1f - Subtle backgrounds, badges */
+    const val subtle = 0.1f
+}

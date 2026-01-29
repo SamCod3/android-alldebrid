@@ -24,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.samcod3.alldebrid.data.model.Device
 import com.samcod3.alldebrid.data.model.DeviceType
+import com.samcod3.alldebrid.ui.theme.Alpha
 import com.samcod3.alldebrid.ui.theme.Spacing
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -81,13 +82,13 @@ fun DeviceItem(
                     Text(
                         text = device.name,
                         style = MaterialTheme.typography.bodySmall,
-                        color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.5f) else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                        color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = Alpha.disabled) else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = Alpha.muted)
                     )
                 }
                 Text(
                     text = "${device.address}:${device.port}",
                     style = MaterialTheme.typography.bodySmall,
-                    color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f) else MaterialTheme.colorScheme.onSurfaceVariant
+                    color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = Alpha.muted) else MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
                     text = when (device.type) {

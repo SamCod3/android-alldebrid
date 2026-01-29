@@ -60,6 +60,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.samcod3.alldebrid.ui.theme.Alpha
 import com.samcod3.alldebrid.ui.theme.Spacing
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.samcod3.alldebrid.R
@@ -106,7 +107,7 @@ fun DevicesScreen(
                     // Device Info Card
                     androidx.compose.material3.Surface(
                         shape = MaterialTheme.shapes.medium,
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = Alpha.disabled),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Column(modifier = Modifier.padding(Spacing.md)) {

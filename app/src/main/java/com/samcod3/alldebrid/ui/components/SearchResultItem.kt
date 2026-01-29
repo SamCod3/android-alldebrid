@@ -26,6 +26,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.samcod3.alldebrid.data.model.SearchResult
+import com.samcod3.alldebrid.ui.theme.Alpha
 import com.samcod3.alldebrid.ui.theme.Spacing
 import com.samcod3.alldebrid.ui.util.formatSize
 
@@ -69,7 +70,7 @@ fun SearchResultItem(
                     horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
                 ) {
                     Surface(
-                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f),
+                        color = MaterialTheme.colorScheme.surface.copy(alpha = Alpha.disabled),
                         shape = MaterialTheme.shapes.extraSmall,
                     ) {
                         Text(
