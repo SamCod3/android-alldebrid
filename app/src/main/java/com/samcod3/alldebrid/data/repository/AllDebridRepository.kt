@@ -10,6 +10,7 @@ import com.samcod3.alldebrid.data.model.Link
 import com.samcod3.alldebrid.data.model.Magnet
 import com.samcod3.alldebrid.data.model.User
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
@@ -38,7 +39,39 @@ class AllDebridRepository @Inject constructor(
     companion object {
         private const val TAG = "AllDebridRepository"
     }
-    
+
+    private suspend fun <T> retryWithBackoff(
+        maxAttempts: Int = 3,
+        initialDelayMs: Long = 500L,
+        factor: Double = 2.0,
+        block: suspend () -> Result<T>
+    ): Result<T> {
+        var lastException: Throwable? = null
+        repeat(maxAttempts) { attempt ->
+            val result = block()
+            if (result.isSuccess) return result
+
+            lastException = result.exceptionOrNull()
+
+            // No reintentar para errores de autorización
+            if (lastException is IpAuthorizationRequiredException) {
+                return result
+            }
+
+            // No reintentar para rate limit
+            if (lastException?.message?.contains("rate", ignoreCase = true) == true) {
+                return result
+            }
+
+            if (attempt < maxAttempts - 1) {
+                val delay = (initialDelayMs * Math.pow(factor, attempt.toDouble())).toLong()
+                Log.d(TAG, "Retry attempt ${attempt + 1}/$maxAttempts, waiting ${delay}ms")
+                kotlinx.coroutines.delay(delay)
+            }
+        }
+        return Result.failure(lastException ?: Exception("Max retries exceeded"))
+    }
+
     private suspend fun getApiKey(): String {
         return settingsDataStore.apiKey.first()
     }
@@ -172,44 +205,81 @@ class AllDebridRepository @Inject constructor(
         return result
     }
     
+    private fun extractMagnetFromString(input: String): String? {
+        if (input.startsWith("magnet:")) {
+            val cleaned = input.substringBefore(' ').substringBefore('\n')
+            return if (cleaned.contains("xt=urn:btih:")) cleaned else null
+        }
+        val htmlRegex = """href=["'](magnet:[^"']+)["']""".toRegex()
+        htmlRegex.find(input)?.groupValues?.get(1)?.let { return it }
+        val paramRegex = """[?&]magnet=([^&]+)""".toRegex()
+        paramRegex.find(input)?.groupValues?.get(1)?.let {
+            return java.net.URLDecoder.decode(it, "UTF-8")
+        }
+        return null
+    }
+
+    private fun extractMagnetFromError(errorMessage: String): String? {
+        val regex = """magnet:\?xt=urn:btih:[a-zA-Z0-9]{32,40}[^\s<>"]*""".toRegex()
+        return regex.find(errorMessage)?.value?.also {
+            Log.i(TAG, "Magnet extracted from error message")
+        }
+    }
+
+    private fun extractMagnetWithFallback(input: String): String {
+        // Solo parse directo - redirects HTTP se manejan en downloadAndUploadTorrent()
+        return extractMagnetFromString(input) ?: input
+    }
+
     /**
      * Upload a link to AllDebrid - handles magnets, remote URLs, and local torrent files
      * Returns: true = cached (instant), false = downloading
      */
     suspend fun uploadLink(link: String): Result<Boolean> {
+        return retryWithBackoff(maxAttempts = 3) {
+            uploadLinkInternal(link)
+        }
+    }
+
+    private suspend fun uploadLinkInternal(link: String): Result<Boolean> {
         return try {
             val apiKey = getApiKey()
             if (apiKey.isBlank()) {
                 return Result.failure(Exception("No API key configured"))
             }
-            
-            // CASE A: Magnet link - send directly
-            if (link.startsWith("magnet:")) {
-                Log.d(TAG, "Uploading magnet link directly")
-                return uploadMagnetDirect(apiKey, link)
+
+            val processedLink = extractMagnetWithFallback(link)
+            if (processedLink != link) {
+                Log.i(TAG, "Processed link: magnet extracted")
             }
-            
+
+            // CASE A: Magnet link - send directly
+            if (processedLink.startsWith("magnet:")) {
+                Log.d(TAG, "Uploading magnet link directly")
+                return uploadMagnetDirect(apiKey, processedLink)
+            }
+
             // CASE B: HTTP/HTTPS URL (torrent file)
-            if (link.startsWith("http://") || link.startsWith("https://")) {
+            if (processedLink.startsWith("http://") || processedLink.startsWith("https://")) {
                 // Check if local URL
-                if (isLocalUrl(link)) {
+                if (isLocalUrl(processedLink)) {
                     Log.d(TAG, "Local URL detected, downloading torrent file first")
-                    return downloadAndUploadTorrent(apiKey, link)
+                    return downloadAndUploadTorrent(apiKey, processedLink)
                 } else {
                     // Try sending URL directly first
                     Log.d(TAG, "Remote URL, trying direct upload first")
-                    val result = uploadMagnetDirect(apiKey, link)
+                    val result = uploadMagnetDirect(apiKey, processedLink)
                     if (result.isSuccess) {
                         return result
                     }
                     // If direct upload fails, try downloading and uploading
                     Log.d(TAG, "Direct upload failed, trying download and upload")
-                    return downloadAndUploadTorrent(apiKey, link)
+                    return downloadAndUploadTorrent(apiKey, processedLink)
                 }
             }
-            
+
             // Unknown format, try direct upload
-            uploadMagnetDirect(apiKey, link)
+            uploadMagnetDirect(apiKey, processedLink)
             
         } catch (e: IpAuthorizationRequiredException) {
             Result.failure(e)
@@ -225,7 +295,7 @@ class AllDebridRepository @Inject constructor(
     private suspend fun uploadMagnetDirect(apiKey: String, magnet: String): Result<Boolean> {
         val response = api.uploadMagnet(apiKey = apiKey, magnet = magnet)
         val body = response.body()
-        
+
         return if (response.isSuccessful && body?.status == "success") {
             // Check if the magnet is ready (cached) or needs downloading
             val uploadedMagnet = body.data?.magnets?.firstOrNull() ?: body.data?.files?.firstOrNull()
@@ -234,6 +304,17 @@ class AllDebridRepository @Inject constructor(
         } else {
             val error = body?.error
             checkForIpError(error?.code, error?.message)
+
+            // Try to extract magnet from error message
+            error?.message?.let { errorMsg ->
+                extractMagnetFromError(errorMsg)?.let { extractedMagnet ->
+                    if (extractedMagnet != magnet) {
+                        Log.i(TAG, "Retrying with extracted magnet from error")
+                        return uploadMagnetDirect(apiKey, extractedMagnet)
+                    }
+                }
+            }
+
             Result.failure(Exception(error?.message ?: "Upload failed"))
         }
     }
@@ -396,15 +477,21 @@ class AllDebridRepository @Inject constructor(
     }
     
     suspend fun unlockLink(link: String): Result<Link> {
+        return retryWithBackoff(maxAttempts = 2) {
+            unlockLinkInternal(link)
+        }
+    }
+
+    private suspend fun unlockLinkInternal(link: String): Result<Link> {
         return try {
             val apiKey = getApiKey()
             if (apiKey.isBlank()) {
                 return Result.failure(Exception("No API key configured"))
             }
-            
+
             val response = api.unlockLink(apiKey = apiKey, link = link)
             val body = response.body()
-            
+
             if (response.isSuccessful && body?.status == "success") {
                 body.data?.let {
                     Result.success(it)
