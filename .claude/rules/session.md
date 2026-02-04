@@ -34,25 +34,25 @@ Sistema para mantener continuidad entre sesiones de desarrollo.
 
 ## Estado Actual
 - **Branch**: `dev-ui`
-- **Fase**: Refactorización UI Material 3 completada
+- **Fase**: Optimización latencia magnets completada
 
-### Última Sesión (2026-01-29)
-- Rediseño completo BottomSheet en DownloadCard (scrollable, delete fijo abajo, borde blanco)
-- Share ahora desbloquea link antes de compartir (URL real del archivo)
-- FileLinkItem con botones Play y Share separados
-- Botón cancelar en downloading con estilo FilledIconButton
-- Bug fix: statusFilter movido para evitar reset al borrar
-- Refactoring Material 3: Spacing tokens, Alpha object, Snackbar, Icons.Rounded
+### Última Sesión (2026-02-04)
+- Optimización latencia al añadir magnets en AllDebridRepository.kt
+- Eliminada llamada redundante a fetchMagnetFromRedirect() en extractMagnetWithFallback()
+- Eliminado código muerto: función fetchMagnetFromRedirect() (~28 líneas)
+- extractMagnetWithFallback() simplificado a función sync (no suspend)
 
 ### Tareas Pendientes
 - [ ] Probar casting DLNA en diferentes dispositivos
 - [ ] Verificar flujo completo: buscar -> añadir magnet -> descargar -> reproducir
+- [ ] (Opcional) Reducir retry delays: 500ms→200ms, factor 2.0→1.5
+- [ ] (Opcional) Eliminar recursión en uploadMagnetDirect()
 
 ### En Progreso
 - Nada pendiente, todo commiteado
 
 ### Decisiones Técnicas Recientes
+- **Latencia magnets**: HTTP redirects se manejan en downloadAndUploadTorrent(), no duplicar en extractMagnetWithFallback()
+- **extractMagnetWithFallback**: Ahora sync porque solo hace parsing de strings
 - **BottomSheet structure**: Column principal 85% altura, contenido scrollable con weight(1f), zona delete fija
 - **Share flow**: `unlockLink()` antes de compartir para obtener URL final
-- **Alpha object**: Centraliza valores de opacidad (muted, disabled, hint)
-- **Iconos**: `Icons.Rounded` estándar, `Icons.AutoMirrored.Rounded` para direccionales
