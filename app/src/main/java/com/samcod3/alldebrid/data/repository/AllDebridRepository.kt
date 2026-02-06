@@ -277,30 +277,30 @@ class AllDebridRepository @Inject constructor(
      * Upload magnet directly. Returns true if cached (instant), false if downloading
      */
     private suspend fun uploadMagnetDirect(apiKey: String, magnet: String): Result<Boolean> {
-        val response = api.uploadMagnet(apiKey = apiKey, magnet = magnet)
-        val body = response.body()
+        var currentMagnet = magnet
+        val maxAttempts = 3
 
-        return if (response.isSuccessful && body?.status == "success") {
-            // Check if the magnet is ready (cached) or needs downloading
-            val uploadedMagnet = body.data?.magnets?.firstOrNull() ?: body.data?.files?.firstOrNull()
-            val isReady = uploadedMagnet?.ready ?: false
-            Result.success(isReady)
-        } else {
+        repeat(maxAttempts) { attempt ->
+            val response = api.uploadMagnet(apiKey = apiKey, magnet = currentMagnet)
+            val body = response.body()
+
+            if (response.isSuccessful && body?.status == "success") {
+                val uploadedMagnet = body.data?.magnets?.firstOrNull() ?: body.data?.files?.firstOrNull()
+                return Result.success(uploadedMagnet?.ready ?: false)
+            }
+
             val error = body?.error
             checkForIpError(error?.code, error?.message)
 
-            // Try to extract magnet from error message
-            error?.message?.let { errorMsg ->
-                extractMagnetFromError(errorMsg)?.let { extractedMagnet ->
-                    if (extractedMagnet != magnet) {
-                        Log.i(TAG, "Retrying with extracted magnet from error")
-                        return uploadMagnetDirect(apiKey, extractedMagnet)
-                    }
-                }
+            val extracted = error?.message?.let { extractMagnetFromError(it) }
+            if (extracted != null && extracted != currentMagnet) {
+                Log.i(TAG, "Retrying with extracted magnet (attempt ${attempt + 1}/$maxAttempts)")
+                currentMagnet = extracted
+            } else {
+                return Result.failure(Exception(error?.message ?: "Upload failed"))
             }
-
-            Result.failure(Exception(error?.message ?: "Upload failed"))
         }
+        return Result.failure(Exception("Upload failed after $maxAttempts attempts"))
     }
     
     private suspend fun downloadAndUploadTorrent(apiKey: String, torrentUrl: String): Result<Boolean> = withContext(Dispatchers.IO) {
