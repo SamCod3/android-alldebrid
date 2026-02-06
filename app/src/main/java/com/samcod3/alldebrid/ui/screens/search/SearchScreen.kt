@@ -22,8 +22,8 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import com.samcod3.alldebrid.ui.components.AppSnackbarHost
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -68,12 +68,13 @@ fun SearchScreen(
     LaunchedEffect(uiState.message) {
         uiState.message?.let { message ->
             snackbarHostState.showSnackbar(message)
+            viewModel.clearMessage()
         }
     }
 
     Scaffold(
         contentWindowInsets = androidx.compose.foundation.layout.WindowInsets.Companion.navigationBars,
-        snackbarHost = { SnackbarHost(snackbarHostState) }
+        snackbarHost = { AppSnackbarHost(snackbarHostState) }
     ) { paddingValues ->
         Box(
             modifier = Modifier
@@ -136,7 +137,8 @@ fun SearchScreen(
                                 items(uiState.results) { result ->
                                     SearchResultItem(
                                         result = result,
-                                        onAddToDebrid = { viewModel.addToDebrid(result) }
+                                        onAddToDebrid = { viewModel.addToDebrid(result) },
+                                        isAdding = uiState.isAdding
                                     )
                                 }
                             }

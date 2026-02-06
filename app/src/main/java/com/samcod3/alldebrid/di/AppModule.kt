@@ -31,6 +31,14 @@ annotation class GenericRetrofit
 
 @Qualifier
 @Retention(AnnotationRetention.BINARY)
+annotation class JackettClient
+
+@Qualifier
+@Retention(AnnotationRetention.BINARY)
+annotation class JackettRetrofit
+
+@Qualifier
+@Retention(AnnotationRetention.BINARY)
 annotation class ApplicationScope
 
 @Module
@@ -82,7 +90,29 @@ object AppModule {
     
     @Provides
     @Singleton
-    fun provideJackettApi(@GenericRetrofit retrofit: Retrofit): JackettApi {
+    @JackettClient
+    fun provideJackettOkHttpClient(): OkHttpClient {
+        return OkHttpClient.Builder()
+            .addInterceptor(HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BODY })
+            .connectTimeout(60, TimeUnit.SECONDS)
+            .readTimeout(60, TimeUnit.SECONDS)
+            .build()
+    }
+
+    @Provides
+    @Singleton
+    @JackettRetrofit
+    fun provideJackettRetrofit(@JackettClient okHttpClient: OkHttpClient): Retrofit {
+        return Retrofit.Builder()
+            .baseUrl("http://localhost/")
+            .client(okHttpClient)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+    }
+
+    @Provides
+    @Singleton
+    fun provideJackettApi(@JackettRetrofit retrofit: Retrofit): JackettApi {
         return retrofit.create(JackettApi::class.java)
     }
     
