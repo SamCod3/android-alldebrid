@@ -5,15 +5,17 @@ import com.samcod3.alldebrid.data.api.KodiCommands
 import com.samcod3.alldebrid.data.datastore.SettingsDataStore
 import com.samcod3.alldebrid.data.model.Device
 import com.samcod3.alldebrid.data.model.DeviceType
+import com.samcod3.alldebrid.di.ApplicationScope
 import com.samcod3.alldebrid.discovery.DeviceDiscoveryManager
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+
 import java.io.OutputStreamWriter
 import java.net.HttpURLConnection
 import java.net.URL
@@ -25,15 +27,14 @@ class DeviceRepository @Inject constructor(
     private val kodiApi: KodiApi,
     private val settingsDataStore: SettingsDataStore,
     private val discoveryManager: DeviceDiscoveryManager,
-    val dlnaQueue: DlnaQueueManager
+    val dlnaQueue: DlnaQueueManager,
+    @ApplicationScope private val appScope: CoroutineScope
 ) {
-    
+
     private val _devices = MutableStateFlow<List<Device>>(emptyList())
-    
+
     init {
-        // Load cached devices on init - using GlobalScope is intentional for Singleton
-        @OptIn(kotlinx.coroutines.DelicateCoroutinesApi::class)
-        GlobalScope.launch {
+        appScope.launch {
             val cachedDevices = settingsDataStore.getDiscoveredDevicesCache().first()
             if (cachedDevices.isNotEmpty()) {
                 _devices.value = cachedDevices
@@ -296,23 +297,18 @@ class DeviceRepository @Inject constructor(
                 val didlMetadata = """&lt;DIDL-Lite xmlns=&quot;urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/&quot; xmlns:dc=&quot;http://purl.org/dc/elements/1.1/&quot; xmlns:upnp=&quot;urn:schemas-upnp-org:metadata-1-0/upnp/&quot;&gt;&lt;item id=&quot;0&quot; parentID=&quot;-1&quot; restricted=&quot;1&quot;&gt;&lt;dc:title&gt;$escapedTitle&lt;/dc:title&gt;&lt;upnp:class&gt;object.item.videoItem&lt;/upnp:class&gt;&lt;res protocolInfo=&quot;http-get:*:$mimeType:*&quot;&gt;$escapedUrl&lt;/res&gt;&lt;/item&gt;&lt;/DIDL-Lite&gt;"""
                 
                 // 0. Stop any current playback first (helps when switching videos)
-                val stopSoap = """<?xml version="1.0" encoding="utf-8"?><s:Envelope s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" xmlns:s="http://schemas.xmlsoap.org/soap/envelope/"><s:Body><u:Stop xmlns:u="urn:schemas-upnp-org:service:AVTransport:1"><InstanceID>0</InstanceID></u:Stop></s:Body></s:Envelope>"""
                 try {
-                    sendSoapAction(endpoint, "urn:schemas-upnp-org:service:AVTransport:1#Stop", stopSoap)
+                    sendSoapAction(endpoint, "$AVT_URN#Stop", buildSoapEnvelope("Stop"))
                 } catch (e: Exception) {
                     // Ignore stop errors - might not be playing
                     android.util.Log.d("DLNA_CAST", "Stop ignored: ${e.message}")
                 }
                 
                 // 1. SetAVTransportURI with DIDL-Lite metadata
-                val setUriSoap = """<?xml version="1.0" encoding="utf-8"?><s:Envelope s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" xmlns:s="http://schemas.xmlsoap.org/soap/envelope/"><s:Body><u:SetAVTransportURI xmlns:u="urn:schemas-upnp-org:service:AVTransport:1"><InstanceID>0</InstanceID><CurrentURI>$escapedUrl</CurrentURI><CurrentURIMetaData>$didlMetadata</CurrentURIMetaData></u:SetAVTransportURI></s:Body></s:Envelope>"""
+                sendSoapAction(endpoint, "$AVT_URN#SetAVTransportURI", buildSoapEnvelope("SetAVTransportURI", "<CurrentURI>$escapedUrl</CurrentURI><CurrentURIMetaData>$didlMetadata</CurrentURIMetaData>"))
                 
-                sendSoapAction(endpoint, "urn:schemas-upnp-org:service:AVTransport:1#SetAVTransportURI", setUriSoap)
-                
-                // 2. Play - compact XML
-                val playSoap = """<?xml version="1.0" encoding="utf-8"?><s:Envelope s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" xmlns:s="http://schemas.xmlsoap.org/soap/envelope/"><s:Body><u:Play xmlns:u="urn:schemas-upnp-org:service:AVTransport:1"><InstanceID>0</InstanceID><Speed>1</Speed></u:Play></s:Body></s:Envelope>"""
-                
-                sendSoapAction(endpoint, "urn:schemas-upnp-org:service:AVTransport:1#Play", playSoap)
+                // 2. Play
+                sendSoapAction(endpoint, "$AVT_URN#Play", buildSoapEnvelope("Play", "<Speed>1</Speed>"))
                 
                 android.util.Log.d("DLNA_CAST", "SUCCESS with endpoint: $endpoint")
                 return@withContext Result.success(Unit)
@@ -361,13 +357,20 @@ class DeviceRepository @Inject constructor(
         
         connection.disconnect()
     }
-    
+
+    private companion object {
+        const val AVT_URN = "urn:schemas-upnp-org:service:AVTransport:1"
+    }
+
+    private fun buildSoapEnvelope(action: String, params: String = ""): String {
+        return """<?xml version="1.0" encoding="utf-8"?><s:Envelope s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" xmlns:s="http://schemas.xmlsoap.org/soap/envelope/"><s:Body><u:$action xmlns:u="$AVT_URN"><InstanceID>0</InstanceID>$params</u:$action></s:Body></s:Envelope>"""
+    }
+
     // DLNA Playback Controls
     suspend fun stopDlna(device: Device): Result<Unit> = withContext(Dispatchers.IO) {
         val endpoint = "http://${device.address}:${device.port}/upnp/control/AVTransport1"
-        val stopSoap = """<?xml version="1.0" encoding="utf-8"?><s:Envelope s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" xmlns:s="http://schemas.xmlsoap.org/soap/envelope/"><s:Body><u:Stop xmlns:u="urn:schemas-upnp-org:service:AVTransport:1"><InstanceID>0</InstanceID></u:Stop></s:Body></s:Envelope>"""
         try {
-            sendSoapAction(endpoint, "urn:schemas-upnp-org:service:AVTransport:1#Stop", stopSoap)
+            sendSoapAction(endpoint, "$AVT_URN#Stop", buildSoapEnvelope("Stop"))
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
@@ -376,9 +379,8 @@ class DeviceRepository @Inject constructor(
     
     suspend fun pauseDlna(device: Device): Result<Unit> = withContext(Dispatchers.IO) {
         val endpoint = "http://${device.address}:${device.port}/upnp/control/AVTransport1"
-        val pauseSoap = """<?xml version="1.0" encoding="utf-8"?><s:Envelope s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" xmlns:s="http://schemas.xmlsoap.org/soap/envelope/"><s:Body><u:Pause xmlns:u="urn:schemas-upnp-org:service:AVTransport:1"><InstanceID>0</InstanceID></u:Pause></s:Body></s:Envelope>"""
         try {
-            sendSoapAction(endpoint, "urn:schemas-upnp-org:service:AVTransport:1#Pause", pauseSoap)
+            sendSoapAction(endpoint, "$AVT_URN#Pause", buildSoapEnvelope("Pause"))
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
@@ -387,9 +389,8 @@ class DeviceRepository @Inject constructor(
     
     suspend fun resumeDlna(device: Device): Result<Unit> = withContext(Dispatchers.IO) {
         val endpoint = "http://${device.address}:${device.port}/upnp/control/AVTransport1"
-        val playSoap = """<?xml version="1.0" encoding="utf-8"?><s:Envelope s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" xmlns:s="http://schemas.xmlsoap.org/soap/envelope/"><s:Body><u:Play xmlns:u="urn:schemas-upnp-org:service:AVTransport:1"><InstanceID>0</InstanceID><Speed>1</Speed></u:Play></s:Body></s:Envelope>"""
         try {
-            sendSoapAction(endpoint, "urn:schemas-upnp-org:service:AVTransport:1#Play", playSoap)
+            sendSoapAction(endpoint, "$AVT_URN#Play", buildSoapEnvelope("Play", "<Speed>1</Speed>"))
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
