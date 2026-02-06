@@ -1,10 +1,5 @@
 package com.samcod3.alldebrid.ui.screens.downloads
 
-import android.content.ClipData
-import android.content.ClipboardManager
-import android.content.Context
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -20,7 +15,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -34,13 +28,7 @@ import androidx.compose.material.icons.rounded.List
 import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Refresh
-import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Stop
-import androidx.compose.material.icons.rounded.Warning
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
@@ -49,14 +37,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import com.samcod3.alldebrid.ui.components.AppSnackbarHost
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -87,204 +71,66 @@ fun DownloadsScreen(
     var searchFilter by remember { mutableStateOf("") }
     var statusFilter by remember { mutableStateOf("ready") }
 
-    // Show IP Authorization dialog when needed
+    // Dialogs
     if (uiState.requiresIpAuthorization) {
-        AlertDialog(
-            onDismissRequest = { viewModel.clearIpAuthorizationFlag() },
-            icon = { Icon(Icons.Rounded.Warning, null, tint = MaterialTheme.colorScheme.error) },
-            title = { Text("IP Authorization Required") },
-            text = { 
-                Text("AllDebrid has detected a new IP address (VPN?). You need to authorize this IP to continue using the service.")
-            },
-            confirmButton = {
-                Button(onClick = {
-                    viewModel.clearIpAuthorizationFlag()
-                    onNavigateToIpAuth()
-                }) {
-                    Text("Authorize IP")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { viewModel.clearIpAuthorizationFlag() }) {
-                    Text("Cancel")
-                }
-            }
-        )
-    }
-    
-    // Show Device Selection Required dialog
-    if (uiState.showNoDeviceDialog) {
-        AlertDialog(
-            onDismissRequest = { viewModel.dismissNoDeviceDialog() },
-            icon = { Icon(Icons.Rounded.Cast, null) },
-            title = { Text("No Device Selected") },
-            text = { 
-                Column {
-                    Text("Please select a device to cast media to.")
-                    if (uiState.discoveredDevices.isEmpty()) {
-                        Spacer(Modifier.height(Spacing.sm))
-                        Text(
-                            "No devices found. Go to Devices tab to discover devices on your network.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-            },
-            confirmButton = {
-                Button(onClick = {
-                    viewModel.dismissNoDeviceDialog()
-                    onNavigateToDevices()
-                }) {
-                    Text(if (uiState.discoveredDevices.isEmpty()) "Discover Devices" else "Select Device")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { viewModel.dismissNoDeviceDialog() }) {
-                    Text("Cancel")
-                }
-            }
-        )
-    }
-    
-    // Show Kodi Queue Dialog
-    if (uiState.showKodiQueueDialog) {
-        AlertDialog(
-            onDismissRequest = { viewModel.dismissKodiQueueDialog() },
-            icon = { Icon(Icons.Rounded.PlayArrow, null) },
-            title = { Text("Kodi is Playing") },
-            text = { Text("Kodi is currently playing content. Do you want to play this now or add it to the queue?") },
-            confirmButton = {
-                Button(onClick = { viewModel.playNow() }) {
-                    Text("Play Now")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { viewModel.addToQueue() }) {
-                    Text("Add to Queue")
-                }
-            }
-        )
-    }
-    
-    // Show DLNA Queue Dialog
-    if (uiState.showDlnaQueueDialog) {
-        AlertDialog(
-            onDismissRequest = { viewModel.dismissDlnaQueueDialog() },
-            icon = { Icon(Icons.Rounded.Cast, null) },
-            title = { Text("Queue has items") },
-            text = { 
-                Column {
-                    Text("You have ${uiState.dlnaQueue.size} video(s) in queue.")
-                    Spacer(Modifier.height(Spacing.sm))
-                    Text("Do you want to play this now or add it to the queue?")
-                }
-            },
-            confirmButton = {
-                Button(onClick = { viewModel.playNow() }) {
-                    Text("Play Now")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { viewModel.addToQueue() }) {
-                    Text("Add to Queue")
-                }
+        IpAuthorizationDialog(
+            onDismiss = { viewModel.clearIpAuthorizationFlag() },
+            onAuthorize = {
+                viewModel.clearIpAuthorizationFlag()
+                onNavigateToIpAuth()
             }
         )
     }
 
-    // Device selector dialog
-    var showDeviceSelector by remember { mutableStateOf(false) }
-    
-    if (showDeviceSelector) {
-        AlertDialog(
-            onDismissRequest = { showDeviceSelector = false },
-            icon = { Icon(Icons.Rounded.Cast, null) },
-            title = { Text("Select Device") },
-            text = {
-                Column {
-                    if (uiState.discoveredDevices.isEmpty()) {
-                        Text("No devices found. Tap 'Discover' to scan.")
-                    } else {
-                        uiState.discoveredDevices.forEach { device ->
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable {
-                                        viewModel.selectDevice(device)
-                                        showDeviceSelector = false
-                                    }
-                                    .padding(vertical = Spacing.sm),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                RadioButton(
-                                    selected = uiState.selectedDevice?.id == device.id,
-                                    onClick = {
-                                        viewModel.selectDevice(device)
-                                        showDeviceSelector = false
-                                    }
-                                )
-                                Spacer(Modifier.width(Spacing.sm))
-                                Column {
-                                    Text(device.displayName, style = MaterialTheme.typography.bodyMedium)
-                                    Text(
-                                        "${device.type.name} • ${device.address}",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                            }
-                        }
-                        
-                        // DLNA Queue info
-                        if (uiState.selectedDevice?.type == com.samcod3.alldebrid.data.model.DeviceType.DLNA && 
-                            uiState.dlnaQueue.isNotEmpty()) {
-                            Spacer(Modifier.height(Spacing.md))
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    "Queue: ${uiState.dlnaQueue.size} video(s)",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
-                                Row {
-                                    TextButton(
-                                        onClick = { 
-                                            viewModel.playNextInDlnaQueue()
-                                            showDeviceSelector = false
-                                        }
-                                    ) {
-                                        Text("Play Next")
-                                    }
-                                    TextButton(
-                                        onClick = { viewModel.clearDlnaQueue() }
-                                    ) {
-                                        Text("Clear", color = MaterialTheme.colorScheme.error)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-            confirmButton = {
-                Button(onClick = {
-                    showDeviceSelector = false
-                    onNavigateToDevices()
-                }) {
-                    Icon(Icons.Rounded.Search, null, Modifier.size(18.dp))
-                    Spacer(Modifier.width(Spacing.xs))
-                    Text("Discover")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDeviceSelector = false }) {
-                    Text("Cancel")
-                }
+    if (uiState.showNoDeviceDialog) {
+        NoDeviceSelectedDialog(
+            hasDevices = uiState.discoveredDevices.isNotEmpty(),
+            onDismiss = { viewModel.dismissNoDeviceDialog() },
+            onNavigateToDevices = {
+                viewModel.dismissNoDeviceDialog()
+                onNavigateToDevices()
             }
+        )
+    }
+
+    if (uiState.showKodiQueueDialog) {
+        KodiQueueDialog(
+            onDismiss = { viewModel.dismissKodiQueueDialog() },
+            onPlayNow = { viewModel.playNow() },
+            onAddToQueue = { viewModel.addToQueue() }
+        )
+    }
+
+    if (uiState.showDlnaQueueDialog) {
+        DlnaQueueDialog(
+            queueSize = uiState.dlnaQueue.size,
+            onDismiss = { viewModel.dismissDlnaQueueDialog() },
+            onPlayNow = { viewModel.playNow() },
+            onAddToQueue = { viewModel.addToQueue() }
+        )
+    }
+
+    var showDeviceSelector by remember { mutableStateOf(false) }
+
+    if (showDeviceSelector) {
+        DeviceSelectorDialog(
+            devices = uiState.discoveredDevices,
+            selectedDevice = uiState.selectedDevice,
+            dlnaQueue = uiState.dlnaQueue,
+            onDismiss = { showDeviceSelector = false },
+            onSelectDevice = { device ->
+                viewModel.selectDevice(device)
+                showDeviceSelector = false
+            },
+            onNavigateToDevices = {
+                showDeviceSelector = false
+                onNavigateToDevices()
+            },
+            onPlayNext = {
+                viewModel.playNextInDlnaQueue()
+                showDeviceSelector = false
+            },
+            onClearQueue = { viewModel.clearDlnaQueue() }
         )
     }
 
@@ -299,7 +145,7 @@ fun DownloadsScreen(
 
     Scaffold(
         contentWindowInsets = WindowInsets.navigationBars,
-        snackbarHost = { SnackbarHost(snackbarHostState) },
+        snackbarHost = { AppSnackbarHost(snackbarHostState) },
         floatingActionButton = {
             FloatingActionButton(
                 onClick = { viewModel.refresh() },
