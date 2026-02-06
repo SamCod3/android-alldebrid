@@ -88,7 +88,22 @@ class AllDebridRepository @Inject constructor(
         }
         return null
     }
-    
+
+    private inline fun <T> safeApiCall(
+        tag: String? = null,
+        message: String? = null,
+        block: () -> Result<T>
+    ): Result<T> {
+        return try {
+            block()
+        } catch (e: IpAuthorizationRequiredException) {
+            Result.failure(e)
+        } catch (e: Exception) {
+            if (tag != null) Log.e(tag, message ?: "API call failed", e)
+            Result.failure(e)
+        }
+    }
+
     /**
      * Check if the URL is a local address (Jackett usually gives these)
      */
@@ -100,50 +115,37 @@ class AllDebridRepository @Inject constructor(
                url.contains("172.16.")
     }
     
-    suspend fun validateApiKey(apiKey: String): Result<User> {
-        return try {
-            val response = api.getUser(apiKey = apiKey)
-            val body = response.body()
-            
-            if (response.isSuccessful && body?.status == "success") {
-                body.data?.user?.let {
-                    Result.success(it)
-                } ?: Result.failure(Exception("Invalid response"))
-            } else {
-                // Check for IP authorization errors
-                val error = body?.error
-                checkForIpError(error?.code, error?.message)
-                Result.failure(Exception("API error: ${error?.message ?: response.code()}"))
-            }
-        } catch (e: IpAuthorizationRequiredException) {
-            Result.failure(e)
-        } catch (e: Exception) {
-            Result.failure(e)
+    suspend fun validateApiKey(apiKey: String): Result<User> = safeApiCall {
+        val response = api.getUser(apiKey = apiKey)
+        val body = response.body()
+
+        if (response.isSuccessful && body?.status == "success") {
+            body.data?.user?.let {
+                Result.success(it)
+            } ?: Result.failure(Exception("Invalid response"))
+        } else {
+            val error = body?.error
+            checkForIpError(error?.code, error?.message)
+            Result.failure(Exception("API error: ${error?.message ?: response.code()}"))
         }
     }
     
-    suspend fun getMagnets(): Result<List<Magnet>> {
-        return try {
-            val apiKey = getApiKey()
-            if (apiKey.isBlank()) {
-                return Result.failure(Exception("No API key configured"))
-            }
-            
-            val response = api.getMagnets(apiKey = apiKey)
-            val body = response.body()
-            
-            if (response.isSuccessful && body?.status == "success") {
-                val magnets = body.data?.magnets ?: emptyList()
-                Result.success(magnets)
-            } else {
-                val error = body?.error
-                checkForIpError(error?.code, error?.message)
-                Result.failure(Exception("API error: ${error?.message ?: response.code()}"))
-            }
-        } catch (e: IpAuthorizationRequiredException) {
-            Result.failure(e)
-        } catch (e: Exception) {
-            Result.failure(e)
+    suspend fun getMagnets(): Result<List<Magnet>> = safeApiCall {
+        val apiKey = getApiKey()
+        if (apiKey.isBlank()) {
+            return@safeApiCall Result.failure(Exception("No API key configured"))
+        }
+
+        val response = api.getMagnets(apiKey = apiKey)
+        val body = response.body()
+
+        if (response.isSuccessful && body?.status == "success") {
+            val magnets = body.data?.magnets ?: emptyList()
+            Result.success(magnets)
+        } else {
+            val error = body?.error
+            checkForIpError(error?.code, error?.message)
+            Result.failure(Exception("API error: ${error?.message ?: response.code()}"))
         }
     }
     
@@ -151,31 +153,24 @@ class AllDebridRepository @Inject constructor(
      * Get files for a magnet using the new /v4/magnet/files endpoint.
      * In API v4.1, files are no longer included in magnet/status response.
      */
-    suspend fun getMagnetFiles(id: Long): Result<List<FlatFile>> {
-        return try {
-            val apiKey = getApiKey()
-            if (apiKey.isBlank()) {
-                return Result.failure(Exception("No API key configured"))
-            }
-            
-            val response = api.getMagnetFiles(apiKey = apiKey, id = id)
-            val body = response.body()
-            
-            if (response.isSuccessful && body?.status == "success") {
-                val magnetFiles = body.data?.magnets?.firstOrNull()
-                val flatFiles = magnetFiles?.files?.let { flattenFiles(it) } ?: emptyList()
-                Log.d(TAG, "Got ${flatFiles.size} files for magnet $id")
-                Result.success(flatFiles)
-            } else {
-                val error = body?.error
-                checkForIpError(error?.code, error?.message)
-                Result.failure(Exception(error?.message ?: "Failed to get files"))
-            }
-        } catch (e: IpAuthorizationRequiredException) {
-            Result.failure(e)
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to get magnet files", e)
-            Result.failure(e)
+    suspend fun getMagnetFiles(id: Long): Result<List<FlatFile>> = safeApiCall(TAG, "Failed to get magnet files") {
+        val apiKey = getApiKey()
+        if (apiKey.isBlank()) {
+            return@safeApiCall Result.failure(Exception("No API key configured"))
+        }
+
+        val response = api.getMagnetFiles(apiKey = apiKey, id = id)
+        val body = response.body()
+
+        if (response.isSuccessful && body?.status == "success") {
+            val magnetFiles = body.data?.magnets?.firstOrNull()
+            val flatFiles = magnetFiles?.files?.let { flattenFiles(it) } ?: emptyList()
+            Log.d(TAG, "Got ${flatFiles.size} files for magnet $id")
+            Result.success(flatFiles)
+        } else {
+            val error = body?.error
+            checkForIpError(error?.code, error?.message)
+            Result.failure(Exception(error?.message ?: "Failed to get files"))
         }
     }
     
@@ -241,52 +236,41 @@ class AllDebridRepository @Inject constructor(
         }
     }
 
-    private suspend fun uploadLinkInternal(link: String): Result<Boolean> {
-        return try {
-            val apiKey = getApiKey()
-            if (apiKey.isBlank()) {
-                return Result.failure(Exception("No API key configured"))
-            }
-
-            val processedLink = extractMagnetWithFallback(link)
-            if (processedLink != link) {
-                Log.i(TAG, "Processed link: magnet extracted")
-            }
-
-            // CASE A: Magnet link - send directly
-            if (processedLink.startsWith("magnet:")) {
-                Log.d(TAG, "Uploading magnet link directly")
-                return uploadMagnetDirect(apiKey, processedLink)
-            }
-
-            // CASE B: HTTP/HTTPS URL (torrent file)
-            if (processedLink.startsWith("http://") || processedLink.startsWith("https://")) {
-                // Check if local URL
-                if (isLocalUrl(processedLink)) {
-                    Log.d(TAG, "Local URL detected, downloading torrent file first")
-                    return downloadAndUploadTorrent(apiKey, processedLink)
-                } else {
-                    // Try sending URL directly first
-                    Log.d(TAG, "Remote URL, trying direct upload first")
-                    val result = uploadMagnetDirect(apiKey, processedLink)
-                    if (result.isSuccess) {
-                        return result
-                    }
-                    // If direct upload fails, try downloading and uploading
-                    Log.d(TAG, "Direct upload failed, trying download and upload")
-                    return downloadAndUploadTorrent(apiKey, processedLink)
-                }
-            }
-
-            // Unknown format, try direct upload
-            uploadMagnetDirect(apiKey, processedLink)
-            
-        } catch (e: IpAuthorizationRequiredException) {
-            Result.failure(e)
-        } catch (e: Exception) {
-            Log.e(TAG, "Upload failed", e)
-            Result.failure(e)
+    private suspend fun uploadLinkInternal(link: String): Result<Boolean> = safeApiCall(TAG, "Upload failed") {
+        val apiKey = getApiKey()
+        if (apiKey.isBlank()) {
+            return@safeApiCall Result.failure(Exception("No API key configured"))
         }
+
+        val processedLink = extractMagnetWithFallback(link)
+        if (processedLink != link) {
+            Log.i(TAG, "Processed link: magnet extracted")
+        }
+
+        // CASE A: Magnet link - send directly
+        if (processedLink.startsWith("magnet:")) {
+            Log.d(TAG, "Uploading magnet link directly")
+            return@safeApiCall uploadMagnetDirect(apiKey, processedLink)
+        }
+
+        // CASE B: HTTP/HTTPS URL (torrent file)
+        if (processedLink.startsWith("http://") || processedLink.startsWith("https://")) {
+            if (isLocalUrl(processedLink)) {
+                Log.d(TAG, "Local URL detected, downloading torrent file first")
+                return@safeApiCall downloadAndUploadTorrent(apiKey, processedLink)
+            } else {
+                Log.d(TAG, "Remote URL, trying direct upload first")
+                val result = uploadMagnetDirect(apiKey, processedLink)
+                if (result.isSuccess) {
+                    return@safeApiCall result
+                }
+                Log.d(TAG, "Direct upload failed, trying download and upload")
+                return@safeApiCall downloadAndUploadTorrent(apiKey, processedLink)
+            }
+        }
+
+        // Unknown format, try direct upload
+        uploadMagnetDirect(apiKey, processedLink)
     }
     
     /**
@@ -452,27 +436,21 @@ class AllDebridRepository @Inject constructor(
     // Keep legacy name for compatibility
     suspend fun uploadMagnet(magnet: String): Result<Boolean> = uploadLink(magnet)
     
-    suspend fun deleteMagnet(id: Long): Result<Unit> {
-        return try {
-            val apiKey = getApiKey()
-            if (apiKey.isBlank()) {
-                return Result.failure(Exception("No API key configured"))
-            }
-            
-            val response = api.deleteMagnet(apiKey = apiKey, id = id)
-            val body = response.body()
-            
-            if (response.isSuccessful && body?.status == "success") {
-                Result.success(Unit)
-            } else {
-                val error = body?.error
-                checkForIpError(error?.code, error?.message)
-                Result.failure(Exception("Delete failed"))
-            }
-        } catch (e: IpAuthorizationRequiredException) {
-            Result.failure(e)
-        } catch (e: Exception) {
-            Result.failure(e)
+    suspend fun deleteMagnet(id: Long): Result<Unit> = safeApiCall {
+        val apiKey = getApiKey()
+        if (apiKey.isBlank()) {
+            return@safeApiCall Result.failure(Exception("No API key configured"))
+        }
+
+        val response = api.deleteMagnet(apiKey = apiKey, id = id)
+        val body = response.body()
+
+        if (response.isSuccessful && body?.status == "success") {
+            Result.success(Unit)
+        } else {
+            val error = body?.error
+            checkForIpError(error?.code, error?.message)
+            Result.failure(Exception("Delete failed"))
         }
     }
     
@@ -482,29 +460,23 @@ class AllDebridRepository @Inject constructor(
         }
     }
 
-    private suspend fun unlockLinkInternal(link: String): Result<Link> {
-        return try {
-            val apiKey = getApiKey()
-            if (apiKey.isBlank()) {
-                return Result.failure(Exception("No API key configured"))
-            }
+    private suspend fun unlockLinkInternal(link: String): Result<Link> = safeApiCall {
+        val apiKey = getApiKey()
+        if (apiKey.isBlank()) {
+            return@safeApiCall Result.failure(Exception("No API key configured"))
+        }
 
-            val response = api.unlockLink(apiKey = apiKey, link = link)
-            val body = response.body()
+        val response = api.unlockLink(apiKey = apiKey, link = link)
+        val body = response.body()
 
-            if (response.isSuccessful && body?.status == "success") {
-                body.data?.let {
-                    Result.success(it)
-                } ?: Result.failure(Exception("Invalid response"))
-            } else {
-                val error = body?.error
-                checkForIpError(error?.code, error?.message)
-                Result.failure(Exception(error?.message ?: "Unlock failed"))
-            }
-        } catch (e: IpAuthorizationRequiredException) {
-            Result.failure(e)
-        } catch (e: Exception) {
-            Result.failure(e)
+        if (response.isSuccessful && body?.status == "success") {
+            body.data?.let {
+                Result.success(it)
+            } ?: Result.failure(Exception("Invalid response"))
+        } else {
+            val error = body?.error
+            checkForIpError(error?.code, error?.message)
+            Result.failure(Exception(error?.message ?: "Unlock failed"))
         }
     }
 }
