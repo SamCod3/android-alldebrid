@@ -23,7 +23,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.samcod3.alldebrid.data.model.SearchResult
 import com.samcod3.alldebrid.ui.theme.Alpha
@@ -34,18 +33,31 @@ import com.samcod3.alldebrid.ui.util.formatSize
 fun SearchResultItem(
     result: SearchResult,
     onAddToDebrid: () -> Unit,
+    isAdding: Boolean = false,
     modifier: Modifier = Modifier
 ) {
+    val cardColor = when {
+        result.failed -> MaterialTheme.colorScheme.errorContainer
+        result.addedToDebrid && result.isDownloading -> MaterialTheme.colorScheme.tertiaryContainer
+        result.addedToDebrid -> MaterialTheme.colorScheme.primaryContainer
+        else -> MaterialTheme.colorScheme.surfaceVariant
+    }
+
+    val actionIcon = when {
+        result.failed -> Icons.Rounded.Close
+        result.addedToDebrid -> Icons.Rounded.Check
+        else -> Icons.Rounded.Add
+    }
+
+    val iconTint = when {
+        result.failed -> MaterialTheme.colorScheme.error
+        result.addedToDebrid -> MaterialTheme.colorScheme.primary
+        else -> MaterialTheme.colorScheme.onSurface
+    }
+
     Card(
         modifier = modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = when {
-                result.failed -> MaterialTheme.colorScheme.errorContainer
-                result.addedToDebrid && result.isDownloading -> MaterialTheme.colorScheme.tertiaryContainer
-                result.addedToDebrid -> MaterialTheme.colorScheme.primaryContainer
-                else -> MaterialTheme.colorScheme.surfaceVariant
-            }
-        ),
+        colors = CardDefaults.cardColors(containerColor = cardColor),
         shape = MaterialTheme.shapes.medium
     ) {
         Row(
@@ -76,7 +88,7 @@ fun SearchResultItem(
                         Text(
                             text = formatSize(result.size ?: 0),
                             style = MaterialTheme.typography.labelSmall,
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs)
                         )
                     }
 
@@ -89,7 +101,7 @@ fun SearchResultItem(
                                 text = "S: $seeders",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = if (seeders > 0) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onErrorContainer,
-                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs)
                             )
                         }
                     }
@@ -109,24 +121,16 @@ fun SearchResultItem(
             // Fixed: Removed redundant IconButton wrapper
             FilledIconButton(
                 onClick = onAddToDebrid,
-                enabled = !result.addedToDebrid && !result.failed,
+                enabled = !result.addedToDebrid && !result.failed && !isAdding,
                 modifier = Modifier.padding(start = Spacing.sm),
                 colors = IconButtonDefaults.filledIconButtonColors(
                     containerColor = MaterialTheme.colorScheme.surface
                 )
             ) {
                 Icon(
-                    imageVector = when {
-                        result.failed -> Icons.Rounded.Close
-                        result.addedToDebrid -> Icons.Rounded.Check
-                        else -> Icons.Rounded.Add
-                    },
+                    imageVector = actionIcon,
                     contentDescription = "Add to AllDebrid",
-                    tint = when {
-                        result.failed -> MaterialTheme.colorScheme.error
-                        result.addedToDebrid -> MaterialTheme.colorScheme.primary
-                        else -> MaterialTheme.colorScheme.onSurface
-                    }
+                    tint = iconTint
                 )
             }
         }
